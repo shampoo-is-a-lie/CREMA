@@ -1,0 +1,58 @@
+{
+  "name": "cafecremaelectron",
+  "version": "1.0.0",
+  "description": "Cafe Neurotico: CREMA - The Bon Vivant Gamepad Interface",
+  "main": "main.js",
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps",
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --linux AppImage"
+  },
+  "keywords": [
+    "game",
+    "manager",
+    "launcher",
+    "linux"
+  ],
+  "author": "Shampoo is a Lie",
+  "license": "ISC",
+  "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
+    "better-sqlite3": "^12.9.0",
+    "howlongtobeat": "^1.8.0",
+    "music-metadata": "^7.13.4"
+  },
+  "devDependencies": {
+    "electron": "^41.2.1",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.cafeneurotico.crema",
+    "productName": "CREMA",
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icons/CREMA.svg",
+      "category": "Game"
+    },
+    "appImage": {
+      "artifactName": "CREMA-v${version}-x86_64.AppImage"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "index.html",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "assets/bin/linux",
+        "to": "assets/bin/linux",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
+  }
+}

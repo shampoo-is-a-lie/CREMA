@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Cafe Crema</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;700;900&display=swap');
+    :root {
+      --bg: #2C1E16; --bg_panel: rgba(67, 40, 24, 0.6); --bg_menu: #432818;
+      --accent: #D4A373; --accent_menu: #D4A373; --text_main: #FFE6A7;
+      --text_sec: #E6CC98; --text_dim: #A47148; --border: rgba(212, 163, 115, 0.2);
+      --border_solid: #8B5A2B;
+    }
+    body { margin: 0; background-color: var(--bg); color: var(--text_main); font-family: 'Raleway', sans-serif; overflow: clip; height: 100vh; width: 100vw; user-select: none; transition: background-color 0.3s ease; }
+
+    #sleep-screen { background-color: #000000; z-index: 3000; justify-content: center; align-items: center; flex-direction: column; pointer-events: none; }
+    .sleep-cover { width: 340px; height: 510px; border-radius: 15px; border: 4px solid var(--border_solid); object-fit: cover; box-shadow: 0 20px 50px rgba(0,0,0,0.9); margin-bottom: 30px; }
+    .sleep-title { font-size: 56px; font-weight: 900; color: var(--text_main); margin-bottom: 60px; text-shadow: 0 5px 15px rgba(0,0,0,0.8); text-align: center; }
+    .sleep-instruction { color: var(--accent); font-size: 26px; font-weight: bold; letter-spacing: 3px; animation: pulse 2s infinite alternate ease-in-out; text-align: center; display: flex; align-items: center; justify-content: center; gap: 15px; }
+    @keyframes pulse { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+
+    /* DYNAMIC BLUR TARGETS */
+    .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: clip; opacity: 1; transition: opacity 0.3s ease-in-out, filter 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+    .is-blurred { filter: blur(15px); pointer-events: none; }
+
+    #splash-screen { justify-content: center; align-items: center; z-index: 50;}
+    .splash-top { position: absolute; top: 100px; color: var(--text_dim); letter-spacing: 10px; font-weight: bold; font-size: 24px; }
+    .splash-center { display: flex; justify-content: center; align-items: center; width: 450px; height: 450px; border-radius: 50%; background-color: var(--border_solid); position: relative; }
+    .splash-logo { position: absolute; font-size: 150px; font-weight: 900; letter-spacing: 20px; color: var(--text_main); transform-origin: center; }
+    .splash-bottom { position: absolute; bottom: 100px; width: 80%; display: flex; flex-direction: column; align-items: flex-end; }
+    .splash-status { color: var(--text_sec); letter-spacing: 5px; font-weight: bold; font-size: 18px; margin-bottom: 10px; }
+    .progress-bar-container { width: 100%; height: 4px; background-color: var(--bg_menu); border-radius: 2px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background-color: var(--accent); width: 0%; transition: width 0.1s linear; }
+
+    /* BOOT ANIMATION */
+    @keyframes bootPop {
+        0% { transform: scale(1); opacity: 1; text-shadow: none; }
+        30% { transform: scale(1.1); opacity: 1; text-shadow: 0 0 30px var(--accent); }
+        100% { transform: scale(2.5); opacity: 0; text-shadow: 0 0 60px var(--accent); }
+    }
+    .boot-anim { animation: bootPop 0.8s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+    /* SCREENSAVER ANIMATION */
+    @keyframes panZoom {
+        0% { transform: scale(1) translate(0, 0); }
+        100% { transform: scale(1.15) translate(2%, 2%); }
+    }
+
+
+
+    #start-screen { padding: 80px; justify-content: center; }
+    .start-container { display: flex; flex: 1; gap: 50px; align-items: center; }
+    .cat-list { flex: 4; display: flex; flex-direction: column; gap: 15px; }
+    .cat-item { display: flex; align-items: center; font-size: 56px; font-weight: bold; color: var(--text_dim); transition: all 0.2s ease; }
+    .cat-item.selected { color: var(--text_main); transform: translateX(20px); text-shadow: 0 0 10px var(--accent); }
+    .cat-icon { width: 64px; height: 64px; background-color: var(--text_dim); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; margin-right: 25px; transition: all 0.3s ease; }
+    .cat-item.selected .cat-icon { background-color: var(--text_main); transform: scale(1.1); filter: drop-shadow(0 0 15px var(--text_main)); }
+
+    .hero-display { flex: 6; display: flex; justify-content: center; align-items: center; position: relative; }
+    .hero-icon { font-size: 72px; font-weight: bold; color: var(--border_solid); text-align: center; }
+    .hero-mosaic { position: relative; width: 850px; height: 600px; display: none; perspective: 1200px; }
+    .mosaic-img { position: absolute; border-radius: 12px; border: 4px solid var(--border_solid); box-shadow: 0px 20px 30px rgba(0,0,0,0.8); object-fit: cover; opacity: 0; transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+    .mosaic-img.show { opacity: 1; }
+    .mosaic-img:nth-child(1) { top: 0; left: 0; width: 480px; height: 300px; z-index: 1; transform: translate3d(-20px, -20px, -50px) rotate(-4deg); }
+    .mosaic-img.show:nth-child(1) { transform: translate3d(0, 0, 0) rotate(-4deg); }
+    .mosaic-img:nth-child(2) { bottom: 0; right: 0; width: 510px; height: 315px; z-index: 2; transform: translate3d(20px, 20px, -30px) rotate(3deg); }
+    .mosaic-img.show:nth-child(2) { transform: translate3d(0, 0, 0) rotate(3deg); }
+    .mosaic-img:nth-child(3) { top: 120px; left: 165px; width: 540px; height: 345px; z-index: 3; border-color: var(--accent); transform: translate3d(0, 50px, 50px) scale(0.9); }
+    .mosaic-img.show:nth-child(3) { transform: translate3d(0, 0, 50px) scale(1.05); box-shadow: 0px 30px 40px rgba(0,0,0,0.9); }
+
+    #main-screen { padding: 50px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; }
+    .header-title { display: flex; align-items: center; gap: 20px; font-size: 48px; font-weight: bold; margin: 0; color: var(--text_main); }
+    .header-icon { width: 56px; height: 56px; background-color: var(--text_main); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; filter: drop-shadow(0 0 15px var(--text_main)); }
+    .header-brand { color: var(--text_dim); font-size: 14px; font-weight: bold; letter-spacing: 2px; }
+
+    .main-container { display: flex; flex: 1; gap: 40px; overflow: hidden; height: calc(100vh - 200px); }
+    .list-view { flex: 3; display: flex; flex-direction: column; overflow-y: scroll; scrollbar-width: none; }
+    .list-view::-webkit-scrollbar { display: none; }
+    .game-item { padding: 15px 20px; font-size: 28px; color: var(--text_sec); border-radius: 8px; margin-bottom: 5px; transition: all 0.1s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; line-height: 1.2; }
+    .game-item.selected { background-color: var(--border); color: var(--text_main); font-weight: bold; border-left: 8px solid var(--accent); }
+
+    .details-view { flex: 5; display: flex; flex-direction: column; gap: 20px; }
+    .image-container { flex: 1; background-color: var(--bg_panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; }
+    .mini-dock { flex: 1; background-color: var(--bg_panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; min-height: 150px; margin-top: 5px; }
+    .mini-prompt { color: var(--text_dim); font-size: 20px; font-weight: bold; text-align: center; padding: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.3s ease; }
+
+    .media-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.5s ease; opacity: 0; pointer-events: none;}
+    .media-layer.active { opacity: 1; pointer-events: auto;}
+
+    .cover-art-overlay { position: absolute; bottom: 20px; left: 20px; width: 140px; height: 210px; border: 3px solid var(--accent); border-radius: 4px; object-fit: cover; box-shadow: 0 10px 20px rgba(0,0,0,0.8); z-index: 10; transition: opacity 0.5s ease; opacity: 1;}
+    .cover-art-overlay.hidden { opacity: 0; }
+    .store-icons-overlay { position: absolute; bottom: 20px; right: 20px; display: flex; gap: 15px; z-index: 10; }
+    .store-icon { width: 60px; height: 60px; background-color: var(--text_main); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; filter: drop-shadow(0px 5px 15px rgba(0,0,0,0.9)); }
+
+    .debug-layer { position: absolute; top: 20px; right: 20px; font-size: 14px; color: #ff00ff; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 4px; z-index: 100; font-family: monospace; display: none; }
+    .desc-box { font-size: 26px; color: var(--text_sec); line-height: 1.5; overflow: hidden; }
+
+    .stats-view { flex: 2; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+    .stat-box { background-color: var(--bg_panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; display: flex; flex-direction: column; justify-content: center; min-width: 0; overflow: hidden; }
+    .stat-title { color: var(--text_dim); font-size: 16px; font-weight: bold; letter-spacing: 1px; margin-bottom: 2px; }
+    .stat-val { color: var(--text_main); font-size: 20px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .footer { text-align: center; color: var(--text_sec); font-size: 22px; margin-top: 20px; display: flex; justify-content: center; align-items: center; }
+
+    .overlay-backdrop { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.35); z-index: 100; display: flex; justify-content: center; align-items: center; opacity: 1; transition: none; }
+    .overlay-backdrop.hidden { opacity: 0; pointer-events: none; }
+    .overlay-modal { background-color: var(--bg_menu); border: 2px solid var(--border_solid); border-radius: 15px; width: 600px; padding: 30px; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+    .overlay-title { font-size: 36px; font-weight: bold; color: var(--text_main); text-align: center; margin-bottom: 30px; }
+    .overlay-list { display: flex; flex-direction: column; max-height: 55vh; overflow-y: hidden; }
+    .overlay-item { font-size: 26px; color: var(--text_sec); padding: 20px; border-bottom: 1px solid var(--border_solid); text-align: center; }
+    .overlay-item.selected { font-size: 32px; font-weight: bold; background-color: var(--border_solid); color: var(--text_main); border-radius: 8px; }
+    .gp-btn-masked { display: inline-block; width: 1.4em; height: 1.4em; vertical-align: middle; margin: 0 2px; background-color: var(--accent); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5)); }
+
+    @keyframes bounce { 0% { height: 10px; } 100% { height: 40px; } }
+
+  </style>
+</head>
+<body>
+  <div id="app-scale-wrapper" style="width: 1920px; height: 1080px; transform-origin: top left; position: absolute; overflow: clip; left: 0; top: 0;">
+
+    <div id="global-clock" style="position: absolute; top: 30px; right: 50px; font-size: 24px; font-weight: bold; color: var(--text_dim); z-index: 2000; letter-spacing: 2px;">--:--</div>
+
+    <div id="splash-screen" class="screen">
+      <div class="splash-top">CAFE NEUROTICO GAME MANAGER:</div>
+      <div class="splash-center"><div class="splash-logo">CREMA</div></div>
+      <div class="splash-bottom">
+        <div class="splash-status" id="splash-text">PRE-HEATING...</div>
+        <div class="progress-bar-container"><div class="progress-bar-fill" id="splash-bar"></div></div>
+      </div>
+    </div>
+
+    <div id="sleep-screen" class="screen hidden">
+      <img id="sleep-cover" class="sleep-cover" src="">
+      <div id="sleep-title" class="sleep-title">GAME RUNNING</div>
+      <div id="sleep-instruction" class="sleep-instruction">Press [START] + [SELECT] to return to CREMA</div>
+    </div>
+
+    <div id="start-screen" class="screen blur-target hidden">
+      <div style="text-align: right; color: var(--text_dim); font-weight: bold; letter-spacing: 2px; padding-right: 80px;">Cafe Neurotico Game Manager: CREMA</div>
+      <div class="start-container">
+        <div class="cat-list" id="cat-list"></div>
+        <div class="hero-display">
+          <div class="hero-icon" id="hero-icon">STORE<br>PORTAL</div>
+          <div class="hero-mosaic" id="hero-mosaic"></div>
+        </div>
+      </div>
+      <div class="footer" id="start-footer">Loading Hardware Inputs...</div>
+    </div>
+
+    <div id="main-screen" class="screen blur-target hidden">
+      <div class="header">
+        <h1 class="header-title" id="main-header">CATEGORY</h1>
+        <div class="header-brand">Cafe Neurotico Game Manager: CREMA</div>
+      </div>
+      <div class="main-container">
+        <div class="list-view" id="game-list"></div>
+        <div class="details-view">
+          <div class="image-container" id="media-container">
+            <div id="media-debug" class="debug-layer">Ready</div>
+            <video id="video-player" class="media-layer" autoplay loop muted playsinline></video>
+            <img id="screenshot-player" class="media-layer" src="">
+            <img id="cover-backdrop" class="media-layer active" src="" style="object-fit: contain;">
+            <img id="cover-mini" class="cover-art-overlay hidden" src="">
+            <div id="store-icons" class="store-icons-overlay"></div>
+          </div>
+          <div class="desc-box" id="game-desc">Loading...</div>
+        </div>
+        <div class="stats-view">
+          <div class="stat-box"><div class="stat-title">RELEASED</div><div class="stat-val" id="stat-release">--</div></div>
+          <div class="stat-box"><div class="stat-title">DEVELOPER</div><div class="stat-val" id="stat-dev">--</div></div>
+          <div class="stat-box"><div class="stat-title">PUBLISHER</div><div class="stat-val" id="stat-pub">--</div></div>
+          <div class="stat-box"><div class="stat-title">GENRE</div><div class="stat-val" id="stat-genre">--</div></div>
+          <div class="stat-box"><div class="stat-title">TIME TO BEAT</div><div class="stat-val" id="stat-hltb" style="color: var(--accent);">--</div></div>
+          <div class="stat-box"><div class="stat-title">PROTONDB</div><div class="stat-val" id="stat-proton">--</div></div>
+          <div class="mini-dock" id="mini-dock">
+             <div id="mini-prompt" class="mini-prompt">Loading Controls...</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer" id="main-footer">Loading Hardware Inputs...</div>
+    </div>
+
+    <div id="jukebox-screen" class="screen blur-target hidden" style="padding: 50px; display: flex; flex-direction: column;">
+      <div class="header">
+        <h1 class="header-title"><div class="header-icon" style="-webkit-mask-image: url('assets/gamepad_icons/playstation_triangle.png');"></div>CREMA JUKEBOX</h1>
+        <div class="header-brand" id="jb-status">Scanning Library...</div>
+      </div>
+      <div class="main-container" style="gap: 30px;">
+
+        <div style="flex: 2; display: flex; flex-direction: column; gap: 15px; border-right: 2px solid var(--border); padding-right: 20px;" id="jb-sidebar">
+            <div class="overlay-item" id="jb-nav-0">SHUFFLE ALL</div>
+            <div class="overlay-item" id="jb-nav-1">ARTISTS</div>
+            <div class="overlay-item" id="jb-nav-2">ALBUMS</div>
+            <div class="overlay-item" id="jb-nav-3">PLAYLISTS</div>
+        </div>
+
+        <div class="list-view" style="flex: 4;" id="jb-list"></div>
+
+        <div style="flex: 3; background: var(--bg_panel); border: 2px solid var(--border_solid); border-radius: 15px; padding: 20px; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+            <div style="font-size: 18px; color: var(--text_dim); font-weight: bold; letter-spacing: 2px; margin-bottom: 15px;">NOW PLAYING</div>
+            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                <img id="jb-np-cover" src="" style="width: 100px; height: 100px; border-radius: 10px; background: #000; object-fit: cover;">
+                <div style="overflow: hidden;">
+                    <div id="jb-np-title" style="font-size: 26px; font-weight: bold; color: var(--text_main); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Title</div>
+                    <div id="jb-np-artist" style="font-size: 18px; color: var(--text_sec); white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Artist</div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: center; gap: 5px; height: 40px; margin-bottom: 20px; align-items: flex-end;" id="jb-visualizer">
+                <div class="bar" style="width: 8px; background: var(--accent); animation: bounce 0.5s infinite alternate ease-in;"></div>
+                <div class="bar" style="width: 8px; background: var(--accent); animation: bounce 0.7s infinite alternate ease-in;"></div>
+                <div class="bar" style="width: 8px; background: var(--accent); animation: bounce 0.4s infinite alternate ease-in;"></div>
+                <div class="bar" style="width: 8px; background: var(--accent); animation: bounce 0.6s infinite alternate ease-in;"></div>
+                <div class="bar" style="width: 8px; background: var(--accent); animation: bounce 0.55s infinite alternate ease-in;"></div>
+            </div>
+
+            <div style="font-size: 16px; color: var(--text_dim); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">UP NEXT</div>
+            <div id="jb-queue" style="flex: 1; overflow-y: auto; scrollbar-width: none; font-size: 18px; color: var(--text_sec); display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+      </div>
+      <div class="footer" id="jb-footer">Loading Controls...</div>
+    </div>
+
+    <div id="screensaver-backdrop" class="overlay-backdrop hidden" style="z-index: 500; background: #000; transition: opacity 1s ease;">
+        <video id="ss-video" style="position:absolute; width:100%; height:100%; object-fit:cover; display:none;" autoplay playsinline muted></video>
+        <img id="ss-image" style="position:absolute; width:100%; height:100%; object-fit:cover; display:none; animation: panZoom 8s infinite alternate ease-in-out;">
+        <div id="ss-ui" style="position:absolute; width:100%; height:100%; padding: 40px 60px; box-sizing: border-box; display:flex; flex-direction:column; justify-content:space-between; z-index: 501; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.5) 100%);">
+            <div id="ss-clock" style="font-size: 42px; font-weight: bold; text-align: right; text-shadow: 0 4px 10px rgba(0,0,0,0.9); color: var(--text_main);">--:--</div>
+            <div id="ss-bottom-row" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div>
+                    <div id="ss-game-title" style="font-size: 56px; font-weight: 900; text-shadow: 0 5px 15px rgba(0,0,0,0.9); margin-bottom: 15px; color: var(--text_main);"></div>
+                    <div id="ss-store-icons" style="display:flex; gap:15px;"></div>
+                </div>
+                <div style="font-size: 24px; font-weight:bold; text-shadow: 0 2px 10px rgba(0,0,0,0.9); text-align:right; color: var(--text_sec);">
+                    <span id="ss-btn-a"></span> LAUNCH &nbsp;&nbsp;&nbsp;
+                    <span id="ss-btn-y"></span> <span id="ss-lbl-y">FAV</span> &nbsp;&nbsp;&nbsp;
+                    <span id="ss-btn-x"></span> <span id="ss-lbl-x">WANT TO PLAY</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="overlay-backdrop" class="overlay-backdrop hidden">
+      <div class="overlay-modal">
+        <div class="overlay-title" id="overlay-title">MAIN MENU</div>
+        <div class="overlay-list" id="overlay-list"></div>
+      </div>
+    </div>
+
+    <div id="osk-backdrop" class="overlay-backdrop hidden" style="z-index: 150;">
+      <div class="overlay-modal" style="width: 800px; text-align: center;">
+        <div id="osk-title" class="overlay-title" style="margin-bottom: 10px;">GLOBAL SEARCH</div>
+        <div id="osk-query" style="font-size: 32px; color: var(--accent); margin-bottom: 20px; height: 40px; border-bottom: 2px solid var(--border_solid); display: inline-block; min-width: 50%;"></div>
+        <div id="osk-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; justify-content: center;"></div>
+        <div style="margin-top: 20px; color: var(--text_dim); font-size: 18px;">Press <strong>[Y]</strong> to Clear Search</div>
+      </div>
+    </div>
+
+    <div id="search-backdrop" class="overlay-backdrop hidden" style="z-index: 105;">
+      <div class="overlay-modal" style="width: 800px;">
+        <div class="overlay-title">SELECT TRAILER</div>
+        <div id="search-status" style="text-align: center; color: var(--accent); font-size: 24px; margin-bottom: 20px;">Searching YouTube...</div>
+        <div class="overlay-list" id="search-list"></div>
+      </div>
+    </div>
+
+    <div id="progress-backdrop" class="overlay-backdrop hidden" style="z-index: 200;">
+      <div class="overlay-modal" style="width: 700px; text-align: center;">
+        <div class="overlay-title">DOWNLOADING</div>
+        <div id="progress-game" style="color: var(--accent); font-size: 28px; font-weight: bold; margin-bottom: 30px;"></div>
+        <div style="width: 100%; height: 25px; background-color: var(--bg_menu); border-radius: 12px; overflow: hidden; position: relative;">
+          <div id="progress-fill" style="height: 100%; width: 0%; background-color: var(--accent); transition: width 0.1s linear;"></div>
+          <div id="progress-percent" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; color: var(--text_main); font-weight: bold;">0%</div>
+        </div>
+        <div id="progress-status" style="margin-top: 15px; color: var(--text_sec); font-size: 20px;">Parsing formats...</div>
+      </div>
+    </div>
+
+    <div id="sound-backdrop" class="overlay-backdrop hidden" style="z-index: 105;">
+      <div class="overlay-modal">
+        <div class="overlay-title">SOUND SETTINGS</div>
+        <div class="overlay-list" id="sound-list"></div>
+        <div id="sound-hint" style="text-align: center; color: var(--text_dim); margin-top: 20px; font-size: 20px; display: flex; align-items: center; justify-content: center; gap: 8px;"></div>
+      </div>
+    </div>
+
+    <div id="scrape-backdrop" class="overlay-backdrop hidden" style="z-index: 105;">
+      <div class="overlay-modal" style="text-align: center;">
+        <div class="overlay-title">SCRAPING ENGINE</div>
+        <div id="scrape-game" style="color: var(--accent); font-size: 24px; font-weight: bold; margin-bottom: 20px; height: 30px;">Ready to scan database.</div>
+        <div style="width: 100%; height: 25px; background-color: var(--bg_menu); border-radius: 12px; overflow: hidden; position: relative; margin-bottom: 20px;">
+          <div id="scrape-fill" style="height: 100%; width: 0%; background-color: var(--accent); transition: width 0.1s linear;"></div>
+          <div id="scrape-percent" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; color: var(--text_main); font-weight: bold;">0%</div>
+        </div>
+        <div class="overlay-list" id="scrape-list"></div>
+      </div>
+    </div>
+
+    <div id="sgdb-backdrop" class="overlay-backdrop hidden" style="z-index: 150;">
+      <div class="overlay-modal" style="width: 1200px; text-align: center;">
+        <div class="overlay-title">SELECT CUSTOM COVER</div>
+        <div id="sgdb-status" style="color: var(--accent); font-size: 20px; margin-bottom: 20px;">Connecting to SteamGridDB...</div>
+        <div id="sgdb-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-height: 600px; overflow: hidden; padding: 15px;"></div>
+        <div style="margin-top: 30px; color: var(--text_dim); font-size: 18px;">Press <strong>[B]</strong> to Cancel</div>
+      </div>
+    </div>
+
+    <div id="keybindings-backdrop" class="overlay-backdrop hidden" style="z-index: 105;">
+      <div class="overlay-modal" style="width: 800px; text-align: left;">
+        <div class="overlay-title">SYSTEM CONTROLS</div>
+        <div id="keybindings-content" style="color: var(--text_sec); font-size: 22px; line-height: 1.8; display: flex; gap: 40px;">
+           <div style="flex: 1;">
+               <div style="color: var(--accent); font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 26px;">GAMEPAD</div>
+               <div id="gb-gamepad"></div>
+           </div>
+           <div style="flex: 1;">
+               <div style="color: var(--accent); font-weight: bold; margin-bottom: 15px; text-align: center; font-size: 26px;">KEYBOARD</div>
+               <div id="gb-keyboard">
+                  <strong>[ENTER]</strong> - Select / Launch<br>
+                  <strong>[ESC] / [BKSP]</strong> - Back<br>
+                  <strong>[ARROWS]</strong> - Navigate<br>
+                  <strong>[TAB]</strong> - Game Options<br>
+                  <strong>[M]</strong> - System Menu<br>
+                  <strong>[X]</strong> - Toggle Media<br>
+                  <strong>[Y]</strong> - Global Search
+               </div>
+           </div>
+        </div>
+        <div style="text-align: center; margin-top: 40px; color: var(--text_dim); font-size: 20px; font-weight: bold;">Press BACK to close</div>
+      </div>
+    </div>
+
+    <div id="now-playing-widget" class="hidden" style="position: absolute; bottom: 40px; right: 40px; width: 400px; background: var(--bg_panel); border: 2px solid var(--border_solid); border-radius: 15px; padding: 15px; display: flex; gap: 15px; align-items: center; z-index: 2000; box-shadow: 0 15px 40px rgba(0,0,0,0.9); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(50px); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+        <img id="np-cover" src="" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; background: #000; display: none;">
+        <div style="flex: 1; overflow: hidden;">
+            <div style="color: var(--text_dim); font-size: 14px; font-weight: 900; letter-spacing: 2px; margin-bottom: 5px;">NOW PLAYING</div>
+            <div id="np-title" style="color: var(--text_main); font-size: 22px; font-weight: bold; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Title</div>
+            <div id="np-artist" style="color: var(--text_sec); font-size: 16px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Artist</div>
+        </div>
+    </div>
+
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
