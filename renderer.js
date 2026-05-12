@@ -328,7 +328,7 @@ function handleInput(action) {
   if (gameState === 'SPLASH' || gameState === 'PROGRESS') return;
 
   if (gameState === 'START') {
-    const _mode = audioCfg.startScreenMode || 'STATIC'; if (_mode === 'CAROUSEL') { if (action === 'LEFT' || action === 'UP') { playSound(sfxNav); navigateCarousel('left'); } else if (action === 'RIGHT' || action === 'DOWN') { playSound(sfxNav); navigateCarousel('right'); } else if (action === 'ACCEPT') { playSound(sfxSelect); transitionToMain(); } else if (action === 'START') openOverlay("MAIN_MENU"); } else if (_mode === 'GRID') { if (action === 'UP' || action === 'DOWN' || action === 'LEFT' || action === 'RIGHT') { playSound(sfxNav); navigateGrid(action); } else if (action === 'ACCEPT') { playSound(sfxSelect); transitionToMain(); } else if (action === 'START') openOverlay("MAIN_MENU"); } else { if (action === 'DOWN') { currentCategoryIndex = (currentCategoryIndex + 1) % categories.length; playSound(sfxNav); updateCategorySelection(); } else if (action === 'UP') { currentCategoryIndex = (currentCategoryIndex - 1 + categories.length) % categories.length; playSound(sfxNav); updateCategorySelection(); } else if (action === 'ACCEPT') { playSound(sfxSelect); transitionToMain(); } else if (action === 'BACK') { /* Disabled */ } else if (action === 'START') openOverlay("MAIN_MENU"); }
+    const _mode = audioCfg.startScreenMode || 'STATIC'; if (_mode === 'CAROUSEL') { if (action === 'LEFT' || action === 'UP') { playSound(sfxNav); navigateCarousel('left'); } else if (action === 'RIGHT' || action === 'DOWN') { playSound(sfxNav); navigateCarousel('right'); } else if (action === 'ACCEPT') { playSound(sfxSelect); transitionToMain(); } else if (action === 'START') openOverlay("MAIN_MENU"); } else if (_mode === 'GRID') { if (action === 'UP' || action === 'DOWN' || action === 'LEFT' || action === 'RIGHT') { playSound(sfxNav); navigateGrid(action); } else if (action === 'ACCEPT') { playSound(sfxSelect); transitionToMain(); } else if (action === 'START') openOverlay("MAIN_MENU"); } else { if (action === 'DOWN') { playSound(sfxNav); navigateList('down'); } else if (action === 'UP') { playSound(sfxNav); navigateList('up'); } else if (action === 'ACCEPT') { playSound(sfxSelect); transitionToMain(); } else if (action === 'BACK') { /* Disabled */ } else if (action === 'START') openOverlay("MAIN_MENU"); }
   }
   else if (gameState === 'MAIN') {
     if (filteredGames.length === 0 && action !== 'BACK' && action !== 'LEFT' && action !== 'RIGHT' && action !== 'START' && action !== 'Y_BUTTON') return;
@@ -602,7 +602,7 @@ function executeOverlayAction() {
       document.getElementById('start-grid').style.display = m === 'GRID' ? 'flex' : 'none';
       if (m === 'CAROUSEL') renderCarouselMode();
       else if (m === 'GRID') renderGridMode();
-      else { const c = document.getElementById('cat-list'); c.innerHTML = ''; categories.forEach((cat, i) => { const d = document.createElement('div'); d.className = 'cat-item'; d.id = `cat-${i}`; const safe = cat.toLowerCase().replace(/ /g, '_'); d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image:url('${convertSafePath('assets/logos/'+safe+'.png')}');"></div><div>${cat}</div>`; c.appendChild(d); }); updateCategorySelection(); }
+      else { buildListTrack(); }
       openStartScreenMenu();
     }
     return;
@@ -915,9 +915,7 @@ function transitionToStart() {
   document.getElementById('start-carousel').style.display = mode === 'CAROUSEL' ? 'flex' : 'none';
   document.getElementById('start-grid').style.display = mode === 'GRID' ? 'flex' : 'none';
   if (mode === 'STATIC') {
-    const c = document.getElementById('cat-list'); c.innerHTML = '';
-    categories.forEach((cat, i) => { const d = document.createElement('div'); d.className = 'cat-item'; d.id = `cat-${i}`; const safeName = cat.toLowerCase().replace(/ /g, '_'); const iconPath = convertSafePath('assets/logos/' + safeName + '.png'); d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image: url('${iconPath}');"></div><div>${cat}</div>`; c.appendChild(d); });
-    updateCategorySelection();
+    buildListTrack();
   } else if (mode === 'CAROUSEL') {
     renderCarouselMode();
   } else if (mode === 'GRID') {
@@ -928,11 +926,73 @@ function updateCategorySelection() {
   const mode = audioCfg.startScreenMode || 'STATIC';
   if (mode === 'CAROUSEL') { updateCarouselClasses(); fillMosaicIn(categories[currentCategoryIndex], 'carousel-hero-icon', 'carousel-hero-mosaic'); return; }
   if (mode === 'GRID') { updateGridSelection(); return; }
-  document.querySelectorAll('.cat-item').forEach(el => el.classList.remove('selected'));
-  const el = document.getElementById(`cat-${currentCategoryIndex}`); if (el) el.classList.add('selected');
+  updateListClasses();
+  updateListTransform(true);
   updateHeroMosaic(categories[currentCategoryIndex]);
 }
 function transitionToMain() { gameState = 'MAIN'; document.getElementById('start-screen').classList.add('hidden'); document.getElementById('main-screen').classList.remove('hidden'); const catName = categories[currentCategoryIndex]; const safeCatName = catName.toLowerCase().replace(/ /g, '_'); const catIconPath = convertSafePath('assets/logos/' + safeCatName + '.png'); document.getElementById('main-header').innerHTML = `<div class="header-icon" style="-webkit-mask-image: url('${catIconPath}');"></div><div>${catName}</div>`; searchQuery = ""; applyLiveFilters(false); }
+
+// === LIST MENU (VERTICAL CAROUSEL) ===
+const LIST_PHANTOMS = 4;
+let listRawPos = LIST_PHANTOMS;
+let listAnimating = false;
+function buildListTrack() {
+  const catList = document.getElementById('cat-list'); if (!catList) return;
+  catList.innerHTML = '';
+  const track = document.createElement('div'); track.id = 'cat-track'; catList.appendChild(track);
+  const all = [...categories.slice(-LIST_PHANTOMS), ...categories, ...categories.slice(0, LIST_PHANTOMS)];
+  all.forEach(cat => {
+    const d = document.createElement('div'); d.className = 'cat-item';
+    const safe = cat.toLowerCase().replace(/ /g, '_');
+    const icon = convertSafePath(`assets/logos/${safe}.png`);
+    d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image: url('${icon}');"></div><div>${cat}</div>`;
+    track.appendChild(d);
+  });
+  listRawPos = currentCategoryIndex + LIST_PHANTOMS;
+  updateListTransform(false); updateListClasses();
+  updateHeroMosaic(categories[currentCategoryIndex]);
+}
+function updateListTransform(animated) {
+  const track = document.getElementById('cat-track'); const catList = document.getElementById('cat-list');
+  if (!track || !catList) return;
+  const item = track.querySelector('.cat-item');
+  const itemH = item ? item.offsetHeight : 64;
+  const slot = itemH + 15;
+  const centerY = catList.clientHeight / 2;
+  if (!animated) { track.style.transition = 'none'; void track.offsetWidth; }
+  track.style.transform = `translateY(${centerY - listRawPos * slot - itemH / 2}px)`;
+  if (!animated) { void track.offsetWidth; track.style.transition = ''; }
+}
+function updateListClasses() {
+  document.querySelectorAll('#cat-track .cat-item').forEach((item, i) => {
+    item.classList.remove('selected', 'far');
+    const dist = Math.abs(i - listRawPos);
+    if (i === listRawPos) item.classList.add('selected');
+    else if (dist >= 4) item.classList.add('far');
+  });
+}
+function navigateList(dir) {
+  if (listAnimating) return;
+  const N = categories.length;
+  if (dir === 'down') { currentCategoryIndex = (currentCategoryIndex + 1) % N; listRawPos++; }
+  else { currentCategoryIndex = (currentCategoryIndex - 1 + N) % N; listRawPos--; }
+  updateListTransform(true); updateListClasses();
+  updateHeroMosaic(categories[currentCategoryIndex]);
+  if (listRawPos < LIST_PHANTOMS || listRawPos >= LIST_PHANTOMS + N) {
+    listAnimating = true;
+    setTimeout(() => {
+      const track = document.getElementById('cat-track');
+      const items = track ? track.querySelectorAll('.cat-item') : [];
+      items.forEach(el => { el.style.transition = 'none'; });
+      void track.offsetWidth;
+      listRawPos = currentCategoryIndex + LIST_PHANTOMS;
+      updateListTransform(false); updateListClasses();
+      void track.offsetWidth;
+      items.forEach(el => { el.style.transition = ''; });
+      listAnimating = false;
+    }, 320);
+  }
+}
 
 // === CAROUSEL MODE ===
 const CAROUSEL_PHANTOMS = 4;

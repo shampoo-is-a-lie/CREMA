@@ -50,8 +50,10 @@
 
 
     #start-screen { padding: 80px; justify-content: center; }
-    .start-container { display: flex; flex: 1; gap: 50px; align-items: center; }
-    .cat-list { flex: 4; display: flex; flex-direction: column; gap: 15px; }
+    .start-container { display: flex; flex: 1; gap: 50px; align-items: stretch; }
+    .cat-list { flex: 4; overflow: hidden; position: relative; }
+    #cat-track { display: flex; flex-direction: column; gap: 15px; transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94); }
+    .cat-item.far { opacity: 0.12; }
     .cat-item { display: flex; align-items: center; font-size: 56px; font-weight: bold; color: var(--text_dim); transition: all 0.2s ease; }
     .cat-item.selected { color: var(--text_main); transform: translateX(20px); text-shadow: 0 0 10px var(--accent); }
     .cat-icon { width: 64px; height: 64px; background-color: var(--text_dim); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; margin-right: 25px; transition: all 0.3s ease; }
