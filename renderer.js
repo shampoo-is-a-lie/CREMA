@@ -35,7 +35,7 @@ let oskR = 0, oskC = 0; let searchQuery = "";
 let sgdbResults = []; let sgdbIndex = 0;
 let activeScrapeMode = ''; let steamSearchResults = []; let selectedAppId = null; let selectedResolvedName = null;
 
-const categories = ["ALL GAMES", "STEAM", "GOG", "EPIC", "OTHERS", "PHYSICAL", "EMULATION", "PLAYABLE", "WANT TO PLAY", "FAVS"];
+const categories = ["ALL GAMES", "STEAM", "GOG", "EPIC", "OTHERS", "PHYSICAL", "EMULATION", "AMAZON", "APPS", "PLAYABLE", "WANT TO PLAY", "FAVS"];
 
 const THEMES = {
   "DARK GRAY": {bg: "#141414", bg_panel: "rgba(0,0,0,0.5)", bg_menu: "#222222", accent: "#ffffff", accent_menu: "#00e5ff", text_main: "#ffffff", text_sec: "#bbbbbb", text_dim: "#777777", border: "rgba(255,255,255,0.1)", border_solid: "#555555"},
@@ -458,7 +458,7 @@ function applyLiveFilters(preserveIndex = false) {
 
   let baseFiltered = allGames.filter(g => {
     const store = g.Store ? String(g.Store).toLowerCase() : ""; const title = g.Game ? String(g.Game).toLowerCase() : ""; let matchCat = false;
-    if (catName === "ALL GAMES") matchCat = true; else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES'; else if (catName === "PLAYABLE") matchCat = g.LaunchCommand && String(g.LaunchCommand).trim() !== "";
+    if (catName === "ALL GAMES") matchCat = true; else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "AMAZON") matchCat = store.includes("amazon"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES'; else if (catName === "PLAYABLE") matchCat = g.LaunchCommand && String(g.LaunchCommand).trim() !== "";
     if (!matchCat) return false; if (q !== "" && !title.includes(q)) return false; return true;
   });
 
@@ -842,7 +842,7 @@ function closeProgressOverlay() { document.getElementById('progress-backdrop').c
 
 function updateHeroMosaic(catName) {
   const iconContainer = document.getElementById('hero-icon'); const mosaicContainer = document.getElementById('hero-mosaic');
-  let filtered = allGames.filter(g => { const store = g.Store ? String(g.Store).toLowerCase() : ""; if (catName === "ALL GAMES") return true; if (catName === "STEAM") return store.includes("steam"); if (catName === "GOG") return store.includes("gog"); if (catName === "EPIC") return store.includes("epic"); if (catName === "PHYSICAL") return store.includes("physical"); if (catName === "EMULATION") return store.includes("emulation"); if (catName === "OTHERS") return store.includes("others"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; if (catName === "PLAYABLE") return g.LaunchCommand && String(g.LaunchCommand).trim() !== ""; return true; });
+  let filtered = allGames.filter(g => { const store = g.Store ? String(g.Store).toLowerCase() : ""; if (catName === "ALL GAMES") return true; if (catName === "STEAM") return store.includes("steam"); if (catName === "GOG") return store.includes("gog"); if (catName === "EPIC") return store.includes("epic"); if (catName === "PHYSICAL") return store.includes("physical"); if (catName === "EMULATION") return store.includes("emulation"); if (catName === "AMAZON") return store.includes("amazon"); if (catName === "APPS") return store.includes("apps"); if (catName === "OTHERS") return store.includes("others"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; if (catName === "PLAYABLE") return g.LaunchCommand && String(g.LaunchCommand).trim() !== ""; return true; });
   let allMedia = [];
   filtered.forEach(g => { if (g.Screenshot && String(g.Screenshot).trim() !== "") allMedia.push(...String(g.Screenshot).split('|').filter(s => s.trim() !== "")); });
   if (allMedia.length < 3) filtered.forEach(g => { if (g.CoverArt && String(g.CoverArt).trim() !== "") allMedia.push(String(g.CoverArt)); });
