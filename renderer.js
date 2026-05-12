@@ -253,6 +253,17 @@ function pollGamepad() {
     requestAnimationFrame(pollGamepad); return;
   }
 
+  // Screensaver dismissal bypasses the input debounce so it always responds on the first press
+  if (gp && gameState === 'SCREENSAVER') {
+    const a = gp.buttons[0]?.pressed, x = gp.buttons[2]?.pressed, yBtn = gp.buttons[3]?.pressed;
+    const anyPressed = Array.from(gp.buttons).some(b => b?.pressed) || (gp.axes && (Math.abs(gp.axes[0]) > 0.5 || Math.abs(gp.axes[1]) > 0.5));
+    if (anyPressed) {
+      inputDebounce = true; setTimeout(() => { inputDebounce = false; }, 180);
+      if (a) handleSSAction('LAUNCH'); else if (yBtn) handleSSAction('FAV'); else if (x) handleSSAction('WANT'); else stopScreensaver();
+    }
+    requestAnimationFrame(pollGamepad); return;
+  }
+
   if (gp && !inputDebounce) {
     const a = gp.buttons[0]?.pressed, b = gp.buttons[1]?.pressed, x = gp.buttons[2]?.pressed, yBtn = gp.buttons[3]?.pressed;
     const selBtn = gp.buttons[8]?.pressed, st = gp.buttons[9]?.pressed, l1 = gp.buttons[4]?.pressed, r1 = gp.buttons[5]?.pressed;
@@ -265,7 +276,6 @@ function pollGamepad() {
       if (u || d || l || r || l1 || r1) { navRepeatDelay = Math.max(40, navRepeatDelay - 35); } else { navRepeatDelay = 180; }
       try {
         if (l3) handleInput('L3'); else if (r3) handleInput('R3'); else if (l2) handleInput('L2'); else if (r2) handleInput('R2');
-        else if (gameState === 'SCREENSAVER') { if (a) handleSSAction('LAUNCH'); else if (yBtn) handleSSAction('FAV'); else if (x) handleSSAction('WANT'); else stopScreensaver(); }
         else {
           resetIdleTimer();
           if (u) handleInput('UP'); else if (d) handleInput('DOWN'); else if (l) handleInput('LEFT'); else if (r) handleInput('RIGHT');
