@@ -941,10 +941,10 @@ function navigateCarousel(dir) {
 }
 // === GRID MODE ===
 function renderGridMode() {
-  fillMosaicIn("ALL GAMES", 'grid-hero-icon', 'grid-hero-mosaic');
+  const topHero = document.getElementById('grid-top-hero'); if (topHero) topHero.style.display = 'none';
   const cells = document.getElementById('grid-cells'); if (!cells) return;
   cells.innerHTML = '';
-  categories.slice(1).forEach((cat, i) => {
+  categories.forEach((cat, i) => {
     const cell = document.createElement('div'); cell.className = 'grid-cell'; cell.id = `grid-cell-${i}`;
     const safe = cat.toLowerCase().replace(/ /g, '_'); const icon = convertSafePath(`assets/logos/${safe}.png`);
     const media = getMediaForCategory(cat);
@@ -955,21 +955,15 @@ function renderGridMode() {
   updateGridSelection();
 }
 function updateGridSelection() {
-  const topHero = document.getElementById('grid-top-hero'); if (topHero) topHero.classList.toggle('selected', currentCategoryIndex === 0);
-  categories.slice(1).forEach((cat, i) => { const cell = document.getElementById(`grid-cell-${i}`); if (cell) cell.classList.toggle('selected', currentCategoryIndex === i + 1); });
+  categories.forEach((cat, i) => { const cell = document.getElementById(`grid-cell-${i}`); if (cell) cell.classList.toggle('selected', currentCategoryIndex === i); });
 }
 function navigateGrid(action) {
-  const N = categories.length; const COLS = 3; const gridItemCount = N - 1;
-  if (currentCategoryIndex === 0) {
-    if (action === 'DOWN' || action === 'RIGHT') currentCategoryIndex = 1;
-    else if (action === 'LEFT') currentCategoryIndex = N - 1;
-  } else {
-    const gridIdx = currentCategoryIndex - 1; const row = Math.floor(gridIdx / COLS); const col = gridIdx % COLS;
-    if (action === 'UP') { if (row === 0) currentCategoryIndex = 0; else currentCategoryIndex -= COLS; }
-    else if (action === 'DOWN') { const next = gridIdx + COLS; if (next < gridItemCount) currentCategoryIndex = next + 1; }
-    else if (action === 'LEFT') { if (col === 0) currentCategoryIndex = 0; else currentCategoryIndex--; }
-    else if (action === 'RIGHT') { if (col === COLS - 1 || currentCategoryIndex >= N - 1) {} else currentCategoryIndex++; }
-  }
+  const N = categories.length; const COLS = 3;
+  const row = Math.floor(currentCategoryIndex / COLS); const col = currentCategoryIndex % COLS;
+  if (action === 'UP' && currentCategoryIndex - COLS >= 0) currentCategoryIndex -= COLS;
+  else if (action === 'DOWN' && currentCategoryIndex + COLS < N) currentCategoryIndex += COLS;
+  else if (action === 'LEFT' && col > 0) currentCategoryIndex--;
+  else if (action === 'RIGHT' && col < COLS - 1 && currentCategoryIndex < N - 1) currentCategoryIndex++;
   updateGridSelection();
 }
 // === START SCREEN MENU ===
