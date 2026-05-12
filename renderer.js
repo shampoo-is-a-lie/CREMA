@@ -23,6 +23,7 @@ let gameHasTrailer = false, mediaSwapped = false;
 let activeThemeCategory = ""; let activeTheme = "CREMA (DEFAULT)";
 
 let hasBooted = false; let idleTimer = null; let screensaverInterval = null; let ssClockInterval = null;
+let screensaverStartTime = 0;
 let availableScreenshots = []; let currentSSGame = null;
 let availableWallpapers = [];
 const delayOptions = [1, 2, 3, 4, 5, 10, 15, 30];
@@ -169,6 +170,7 @@ function startScreensaver() {
   if (gameState === 'SCREENSAVER' || gameState === 'SPLASH') return;
   if (gameState === 'START' || gameState === 'MAIN') previousGameState = gameState;
   gameState = 'SCREENSAVER';
+  screensaverStartTime = Date.now();
   document.getElementById('screensaver-backdrop').classList.remove('hidden');
   updateSSClock(); ssClockInterval = setInterval(updateSSClock, 10000);
   if (audioCfg.screensaver === 'CN WALLPAPERS') playRandomWallpaper(); else playRandomScreenshot();
@@ -253,13 +255,17 @@ function pollGamepad() {
     requestAnimationFrame(pollGamepad); return;
   }
 
-  // Screensaver dismissal bypasses the input debounce so it always responds on the first press
+  // Screensaver input is checked outside the debounce gate so the first button press always works.
+  // A 300ms cooldown after start prevents the button that triggered the screensaver from
+  // immediately dismissing it (e.g. holding A on "VIEW SCREENSAVER NOW").
   if (gp && gameState === 'SCREENSAVER') {
-    const a = gp.buttons[0]?.pressed, x = gp.buttons[2]?.pressed, yBtn = gp.buttons[3]?.pressed;
-    const anyPressed = Array.from(gp.buttons).some(b => b?.pressed) || (gp.axes && (Math.abs(gp.axes[0]) > 0.5 || Math.abs(gp.axes[1]) > 0.5));
-    if (anyPressed) {
-      inputDebounce = true; setTimeout(() => { inputDebounce = false; }, 180);
-      if (a) handleSSAction('LAUNCH'); else if (yBtn) handleSSAction('FAV'); else if (x) handleSSAction('WANT'); else stopScreensaver();
+    if (Date.now() - screensaverStartTime >= 300) {
+      const a = gp.buttons[0]?.pressed, x = gp.buttons[2]?.pressed, yBtn = gp.buttons[3]?.pressed;
+      const anyBtn = Array.from(gp.buttons).some(b => b?.pressed);
+      if (anyBtn) {
+        inputDebounce = true; setTimeout(() => { inputDebounce = false; }, 180);
+        if (a) handleSSAction('LAUNCH'); else if (yBtn) handleSSAction('FAV'); else if (x) handleSSAction('WANT'); else stopScreensaver();
+      }
     }
     requestAnimationFrame(pollGamepad); return;
   }
