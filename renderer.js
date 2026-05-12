@@ -4,7 +4,7 @@ window.onerror = function(message, source, lineno) {
 };
 
 let baseDir = ""; let sfxNav, sfxSelect, sfxBack; let bgmAudio = new Audio();
-let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "JAZZ", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "STATIC" };
+let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "JAZZ", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "CAROUSEL" };
 let customPlaylist = []; let customIndex = 0; let isCustom = false;
 let npTimeout = null;
 
@@ -115,7 +115,7 @@ function renderHardwareIcons() {
 
 async function initAudio() {
   let rawCfg = await window.api.getAudioConfig();
-  if (rawCfg) { audioCfg.bgm = rawCfg.bgm !== undefined ? rawCfg.bgm : true; audioCfg.sfx = rawCfg.sfx !== undefined ? rawCfg.sfx : true; audioCfg.vol = rawCfg.vol !== undefined ? rawCfg.vol : 0.3; audioCfg.bgm_mode = rawCfg.bgm_mode !== undefined ? rawCfg.bgm_mode : "JAZZ"; audioCfg.screensaver = rawCfg.screensaver !== undefined ? rawCfg.screensaver : "CN WALLPAPERS"; audioCfg.screensaverDelay = rawCfg.screensaverDelay !== undefined ? rawCfg.screensaverDelay : 3; audioCfg.gamepadLayout = rawCfg.gamepadLayout !== undefined ? rawCfg.gamepadLayout : "XBOX"; audioCfg.wakeMethod = rawCfg.wakeMethod !== undefined ? rawCfg.wakeMethod : "START + SELECT"; if (rawCfg.theme && THEMES[rawCfg.theme]) { activeTheme = rawCfg.theme; } audioCfg.startScreenMode = rawCfg.startScreenMode || 'STATIC'; }
+  if (rawCfg) { audioCfg.bgm = rawCfg.bgm !== undefined ? rawCfg.bgm : true; audioCfg.sfx = rawCfg.sfx !== undefined ? rawCfg.sfx : true; audioCfg.vol = rawCfg.vol !== undefined ? rawCfg.vol : 0.3; audioCfg.bgm_mode = rawCfg.bgm_mode !== undefined ? rawCfg.bgm_mode : "JAZZ"; audioCfg.screensaver = rawCfg.screensaver !== undefined ? rawCfg.screensaver : "CN WALLPAPERS"; audioCfg.screensaverDelay = rawCfg.screensaverDelay !== undefined ? rawCfg.screensaverDelay : 3; audioCfg.gamepadLayout = rawCfg.gamepadLayout !== undefined ? rawCfg.gamepadLayout : "XBOX"; audioCfg.wakeMethod = rawCfg.wakeMethod !== undefined ? rawCfg.wakeMethod : "START + SELECT"; if (rawCfg.theme && THEMES[rawCfg.theme]) { activeTheme = rawCfg.theme; audioCfg.theme = rawCfg.theme; } audioCfg.startScreenMode = rawCfg.startScreenMode || 'CAROUSEL'; }
   baseDir = await window.api.getBaseDir();
   const bp = `assets/sounds`;
   sfxNav = new Audio(`${bp}/nav.wav`); sfxSelect = new Audio(`${bp}/select.wav`); sfxBack = new Audio(`${bp}/back.wav`);
@@ -564,7 +564,18 @@ function executeOverlayAction() {
     const modeMap = { 'STATIC MENU': 'STATIC', 'HORIZONTAL CAROUSEL': 'CAROUSEL', 'GRID': 'GRID' };
     const raw = String(action).replace('★ ', '');
     if (raw === 'BACK TO MENU') { openOverlay("MAIN_MENU"); return; }
-    if (modeMap[raw]) { audioCfg.startScreenMode = modeMap[raw]; window.api.saveAudioConfig(audioCfg); openStartScreenMenu(); }
+    if (modeMap[raw]) {
+      audioCfg.startScreenMode = modeMap[raw];
+      window.api.saveAudioConfig(audioCfg);
+      const m = modeMap[raw];
+      document.getElementById('start-static').style.display = m === 'STATIC' ? 'flex' : 'none';
+      document.getElementById('start-carousel').style.display = m === 'CAROUSEL' ? 'flex' : 'none';
+      document.getElementById('start-grid').style.display = m === 'GRID' ? 'flex' : 'none';
+      if (m === 'CAROUSEL') renderCarouselMode();
+      else if (m === 'GRID') renderGridMode();
+      else { const c = document.getElementById('cat-list'); c.innerHTML = ''; categories.forEach((cat, i) => { const d = document.createElement('div'); d.className = 'cat-item'; d.id = `cat-${i}`; const safe = cat.toLowerCase().replace(/ /g, '_'); d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image:url('${convertSafePath('assets/logos/'+safe+'.png')}');"></div><div>${cat}</div>`; c.appendChild(d); }); updateCategorySelection(); }
+      openStartScreenMenu();
+    }
     return;
   }
 
@@ -870,10 +881,10 @@ function transitionToStart() {
   document.getElementById('splash-screen').classList.add('hidden');
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
-  const mode = audioCfg.startScreenMode || 'STATIC';
-  document.getElementById('start-static').classList.toggle('hidden', mode !== 'STATIC');
-  document.getElementById('start-carousel').classList.toggle('hidden', mode !== 'CAROUSEL');
-  document.getElementById('start-grid').classList.toggle('hidden', mode !== 'GRID');
+  const mode = audioCfg.startScreenMode || 'CAROUSEL';
+  document.getElementById('start-static').style.display = mode === 'STATIC' ? 'flex' : 'none';
+  document.getElementById('start-carousel').style.display = mode === 'CAROUSEL' ? 'flex' : 'none';
+  document.getElementById('start-grid').style.display = mode === 'GRID' ? 'flex' : 'none';
   if (mode === 'STATIC') {
     const c = document.getElementById('cat-list'); c.innerHTML = '';
     categories.forEach((cat, i) => { const d = document.createElement('div'); d.className = 'cat-item'; d.id = `cat-${i}`; const safeName = cat.toLowerCase().replace(/ /g, '_'); const iconPath = convertSafePath('assets/logos/' + safeName + '.png'); d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image: url('${iconPath}');"></div><div>${cat}</div>`; c.appendChild(d); });
@@ -909,10 +920,9 @@ function renderCarouselMode() {
 }
 function updateCarouselTransform(animated) {
   const track = document.getElementById('carousel-track'); if (!track) return;
-  if (!animated) track.style.transition = 'none';
-  const offset = 960 - 100 - carouselRawPos * 200;
-  track.style.transform = `translateX(${offset}px)`;
-  if (!animated) requestAnimationFrame(() => requestAnimationFrame(() => { track.style.transition = ''; }));
+  if (!animated) { track.style.transition = 'none'; void track.offsetWidth; }
+  track.style.transform = `translateX(${960 - 100 - carouselRawPos * 200}px)`;
+  if (!animated) { void track.offsetWidth; track.style.transition = ''; }
 }
 function updateCarouselClasses() {
   document.querySelectorAll('#carousel-track .carousel-item').forEach((item, i) => { item.classList.remove('selected', 'near'); const dist = Math.abs(i - carouselRawPos); if (i === carouselRawPos) item.classList.add('selected'); else if (dist <= 2) item.classList.add('near'); });
