@@ -4,7 +4,7 @@ window.onerror = function(message, source, lineno) {
 };
 
 let baseDir = ""; let sfxNav, sfxSelect, sfxBack; let bgmAudio = new Audio();
-let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "JAZZ", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "CAROUSEL" };
+let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "JAZZ", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "STATIC" };
 let customPlaylist = []; let customIndex = 0; let isCustom = false;
 let npTimeout = null;
 
@@ -116,7 +116,7 @@ function renderHardwareIcons() {
 
 async function initAudio() {
   let rawCfg = await window.api.getAudioConfig();
-  if (rawCfg) { audioCfg.bgm = rawCfg.bgm !== undefined ? rawCfg.bgm : true; audioCfg.sfx = rawCfg.sfx !== undefined ? rawCfg.sfx : true; audioCfg.vol = rawCfg.vol !== undefined ? rawCfg.vol : 0.3; audioCfg.bgm_mode = rawCfg.bgm_mode !== undefined ? rawCfg.bgm_mode : "JAZZ"; audioCfg.screensaver = rawCfg.screensaver !== undefined ? rawCfg.screensaver : "CN WALLPAPERS"; audioCfg.screensaverDelay = rawCfg.screensaverDelay !== undefined ? rawCfg.screensaverDelay : 3; audioCfg.gamepadLayout = rawCfg.gamepadLayout !== undefined ? rawCfg.gamepadLayout : "XBOX"; audioCfg.wakeMethod = rawCfg.wakeMethod !== undefined ? rawCfg.wakeMethod : "START + SELECT"; if (rawCfg.theme && THEMES[rawCfg.theme]) { activeTheme = rawCfg.theme; audioCfg.theme = rawCfg.theme; } audioCfg.startScreenMode = rawCfg.startScreenMode || 'CAROUSEL'; }
+  if (rawCfg) { audioCfg.bgm = rawCfg.bgm !== undefined ? rawCfg.bgm : true; audioCfg.sfx = rawCfg.sfx !== undefined ? rawCfg.sfx : true; audioCfg.vol = rawCfg.vol !== undefined ? rawCfg.vol : 0.3; audioCfg.bgm_mode = rawCfg.bgm_mode !== undefined ? rawCfg.bgm_mode : "JAZZ"; audioCfg.screensaver = rawCfg.screensaver !== undefined ? rawCfg.screensaver : "CN WALLPAPERS"; audioCfg.screensaverDelay = rawCfg.screensaverDelay !== undefined ? rawCfg.screensaverDelay : 3; audioCfg.gamepadLayout = rawCfg.gamepadLayout !== undefined ? rawCfg.gamepadLayout : "XBOX"; audioCfg.wakeMethod = rawCfg.wakeMethod !== undefined ? rawCfg.wakeMethod : "START + SELECT"; if (rawCfg.theme && THEMES[rawCfg.theme]) { activeTheme = rawCfg.theme; audioCfg.theme = rawCfg.theme; } audioCfg.startScreenMode = rawCfg.startScreenMode || 'STATIC'; }
   baseDir = await window.api.getBaseDir();
   const bp = `assets/sounds`;
   sfxNav = new Audio(`${bp}/nav.wav`); sfxSelect = new Audio(`${bp}/select.wav`); sfxBack = new Audio(`${bp}/back.wav`);
@@ -910,7 +910,7 @@ function transitionToStart() {
   document.getElementById('splash-screen').classList.add('hidden');
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('start-screen').classList.remove('hidden');
-  const mode = audioCfg.startScreenMode || 'CAROUSEL';
+  const mode = audioCfg.startScreenMode || 'STATIC';
   document.getElementById('start-static').style.display = mode === 'STATIC' ? 'flex' : 'none';
   document.getElementById('start-carousel').style.display = mode === 'CAROUSEL' ? 'flex' : 'none';
   document.getElementById('start-grid').style.display = mode === 'GRID' ? 'flex' : 'none';
@@ -981,14 +981,13 @@ function navigateList(dir) {
   if (listRawPos < LIST_PHANTOMS || listRawPos >= LIST_PHANTOMS + N) {
     listAnimating = true;
     setTimeout(() => {
-      const track = document.getElementById('cat-track');
-      const items = track ? track.querySelectorAll('.cat-item') : [];
-      items.forEach(el => { el.style.transition = 'none'; });
+      const track = document.getElementById('cat-track'); if (!track) { listAnimating = false; return; }
+      track.classList.add('no-anim');
       void track.offsetWidth;
       listRawPos = currentCategoryIndex + LIST_PHANTOMS;
       updateListTransform(false); updateListClasses();
       void track.offsetWidth;
-      items.forEach(el => { el.style.transition = ''; });
+      track.classList.remove('no-anim');
       listAnimating = false;
     }, 320);
   }
