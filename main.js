@@ -4,9 +4,53 @@ const os = require('os');
 const fs = require('fs');
 const Database = require('better-sqlite3');
 const { spawn, exec, execFile } = require('child_process');
-const hltb = require('howlongtobeat');
-const hltbService = new hltb.HowLongToBeatService();
+const https = require('https');
 const mm = require('music-metadata');
+
+async function searchHltb(gameName) {
+    const initData = await new Promise((resolve, reject) => {
+        const req = https.get(`https://howlongtobeat.com/api/bleed/init?t=${Date.now()}`, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'referer': 'https://howlongtobeat.com/',
+            }
+        }, res => {
+            let body = '';
+            res.on('data', c => body += c);
+            res.on('end', () => { try { resolve(JSON.parse(body)); } catch(e) { reject(e); } });
+        });
+        req.on('error', reject);
+        req.setTimeout(10000, () => { req.destroy(); reject(new Error('timeout')); });
+    });
+    const { token, hpKey, hpVal } = initData;
+    const payload = {
+        searchType: 'games', searchTerms: gameName.trim().split(' '),
+        searchPage: 1, size: 5,
+        searchOptions: {
+            games: { userId: 0, platform: '', sortCategory: 'popular', rangeCategory: 'main', rangeTime: { min: 0, max: 0 }, gameplay: { perspective: '', flow: '', genre: '', difficulty: '' }, rangeYear: { min: 0, max: 0 }, modifier: '' },
+            users: { sortCategory: 'postcount' }, lists: { sortCategory: 'all' },
+            filter: '', sort: 0, randomizer: 0
+        },
+        useCache: true
+    };
+    if (hpKey) payload[hpKey] = hpVal;
+    const body = JSON.stringify(payload);
+    return new Promise((resolve, reject) => {
+        const req = https.request({ hostname: 'howlongtobeat.com', path: '/api/bleed', method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body),
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'origin': 'https://howlongtobeat.com', 'referer': 'https://howlongtobeat.com/search',
+                'x-auth-token': token, 'x-hp-key': hpKey, 'x-hp-val': hpVal }
+        }, res => {
+            let data = '';
+            res.on('data', c => data += c);
+            res.on('end', () => { try { resolve(JSON.parse(data).data || []); } catch(e) { reject(e); } });
+        });
+        req.on('error', reject);
+        req.setTimeout(15000, () => { req.destroy(); reject(new Error('timeout')); });
+        req.write(body); req.end();
+    });
+}
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
@@ -104,7 +148,7 @@ ipcMain.on('force-focus', () => {
     }
 });
 
-ipcMain.handle('fetch-hltb', async (event, gameName) => { try { const results = await hltbService.search(gameName); if (results.length > 0 && results[0].gameplayMain > 0) return `${results[0].gameplayMain} Hours`; return "Unknown"; } catch (e) { return "Error"; } });
+ipcMain.handle('fetch-hltb', async (event, gameName) => { try { const results = await searchHltb(gameName); if (results.length > 0 && results[0].comp_main > 0) return `${Math.round(results[0].comp_main / 3600)} Hours`; return "Unknown"; } catch (e) { return "Error"; } });
 ipcMain.handle('fetch-proton', async (event, appId) => { try { const response = await fetch(`https://www.protondb.com/api/v1/reports/summaries/${appId}.json`); if (!response.ok) return "Error"; const data = await response.json(); return data.tier ? data.tier : "Unknown"; } catch (e) { return "Error"; } });
 
 // --- BEAUTIFUL NAMING HELPERS ---
@@ -251,7 +295,7 @@ ipcMain.handle('run-batch-scrape', async (event) => {
     if (missing.length === 0) { if (win) win.webContents.send('scrape-progress', { game: "Database is fully scraped!", percent: 100 }); return true; }
     for (let i = 0; i < missing.length; i++) {
         const g = missing[i]; const p = Math.floor((i / missing.length) * 100); if (win) win.webContents.send('scrape-progress', { game: `Scraping: ${g.Game}`, percent: p });
-        if (!g.HLTB_Main || g.HLTB_Main === '' || g.HLTB_Main === 'Searching...' || g.HLTB_Main === 'Unknown') { try { const res = await hltbService.search(g.Game); const val = (res.length > 0 && res[0].gameplayMain > 0) ? `${res[0].gameplayMain} Hours` : "Unknown"; db.prepare(`UPDATE games SET HLTB_Main = ? WHERE Game = ?`).run(val, g.Game); } catch(e) {} }
+        if (!g.HLTB_Main || g.HLTB_Main === '' || g.HLTB_Main === 'Searching...' || g.HLTB_Main === 'Unknown') { try { const res = await searchHltb(g.Game); const val = (res.length > 0 && res[0].comp_main > 0) ? `${Math.round(res[0].comp_main / 3600)} Hours` : "Unknown"; db.prepare(`UPDATE games SET HLTB_Main = ? WHERE Game = ?`).run(val, g.Game); } catch(e) {} }
         if (g.SteamAppID && g.SteamAppID !== 'None' && g.SteamAppID !== '' && (!g.ProtonTier || g.ProtonTier === '' || g.ProtonTier === 'Scanning...' || g.ProtonTier === 'UNKNOWN')) { try { const pRes = await fetch(`https://www.protondb.com/api/v1/reports/summaries/${g.SteamAppID}.json`); if (pRes.ok) { const data = await pRes.json(); const tier = data.tier ? data.tier.toUpperCase() : "UNKNOWN"; db.prepare(`UPDATE games SET ProtonTier = ? WHERE Game = ?`).run(tier, g.Game); } } catch(e) {} }
             await new Promise(resolve => setTimeout(resolve, 300));
     }
