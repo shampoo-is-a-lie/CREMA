@@ -936,7 +936,18 @@ function navigateCarousel(dir) {
   fillMosaicIn(categories[currentCategoryIndex], 'carousel-hero-icon', 'carousel-hero-mosaic');
   if (carouselRawPos < CAROUSEL_PHANTOMS || carouselRawPos >= CAROUSEL_PHANTOMS + N) {
     carouselAnimating = true;
-    setTimeout(() => { carouselRawPos = currentCategoryIndex + CAROUSEL_PHANTOMS; updateCarouselTransform(false); updateCarouselClasses(); carouselAnimating = false; }, 320);
+    setTimeout(() => {
+      const track = document.getElementById('carousel-track');
+      const items = track ? track.querySelectorAll('.carousel-item') : [];
+      items.forEach(el => { el.style.transition = 'none'; });
+      void track.offsetWidth;
+      carouselRawPos = currentCategoryIndex + CAROUSEL_PHANTOMS;
+      updateCarouselTransform(false);
+      updateCarouselClasses();
+      void track.offsetWidth;
+      items.forEach(el => { el.style.transition = ''; });
+      carouselAnimating = false;
+    }, 320);
   }
 }
 // === GRID MODE ===
