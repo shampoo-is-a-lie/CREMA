@@ -19,6 +19,12 @@ let numRecentInList = 0;
 
 let trailerTimeout = null, screenshotInterval = null, bgmFadeInterval = null;
 let screenshotArray = [], currentScreenshotIndex = 0;
+let ssKbIndex = 0;
+const SS_KB = ['ssKB1','ssKB2','ssKB3','ssKB4'];
+function applySsKenBurns(el) {
+    el.style.animation = 'none'; void el.offsetWidth;
+    el.style.animation = `${SS_KB[ssKbIndex++ % 4]} 4.5s ease-in-out forwards`;
+}
 let gameHasTrailer = false, mediaSwapped = false;
 let activeThemeCategory = ""; let activeTheme = "CREMA (DEFAULT)";
 
@@ -1206,7 +1212,7 @@ function updateGameSelection() {
 
       trailerTimeout = setTimeout(() => {
         let hasScreenshots = false;
-        if (hasScreenshotsTemp) { screenshotArray = String(game.Screenshot).split('|').filter(s => String(s).trim() !== ""); if (screenshotArray.length > 0) { hasScreenshots = true; currentScreenshotIndex = 0; const ss = document.getElementById('screenshot-player'); ss.src = convertSafePath(screenshotArray[0]); screenshotInterval = setInterval(() => { currentScreenshotIndex = (currentScreenshotIndex + 1) % screenshotArray.length; ss.src = convertSafePath(screenshotArray[currentScreenshotIndex]); }, 4000); } }
+        if (hasScreenshotsTemp) { screenshotArray = String(game.Screenshot).split('|').filter(s => String(s).trim() !== ""); if (screenshotArray.length > 0) { hasScreenshots = true; currentScreenshotIndex = 0; const ss = document.getElementById('screenshot-player'); ss.src = convertSafePath(screenshotArray[0]); applySsKenBurns(ss); screenshotInterval = setInterval(() => { currentScreenshotIndex = (currentScreenshotIndex + 1) % screenshotArray.length; ss.src = convertSafePath(screenshotArray[currentScreenshotIndex]); applySsKenBurns(ss); }, 4000); } }
         window.api.checkLocalTrailer(game.Game).then(localUrl => {
 
           // FIX: Guard against late promise resolution playing video in the background while game is launching
