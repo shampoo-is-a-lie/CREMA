@@ -590,7 +590,7 @@ function executeOverlayAction() {
   playSound(sfxSelect); const action = overlayItems[currentOverlayIndex];
 
   if (gameState === 'START_SCREEN_MENU') {
-    const modeMap = { 'STATIC MENU': 'STATIC', 'HORIZONTAL CAROUSEL': 'CAROUSEL', 'GRID': 'GRID' };
+    const modeMap = { 'LIST MENU': 'STATIC', 'HORIZONTAL CAROUSEL': 'CAROUSEL', 'GRID': 'GRID' };
     const raw = String(action).replace('★ ', '');
     if (raw === 'BACK TO MENU') { openOverlay("MAIN_MENU"); return; }
     if (modeMap[raw]) {
@@ -1010,7 +1010,7 @@ function navigateGrid(action) {
 function openStartScreenMenu() {
   gameState = 'START_SCREEN_MENU';
   const current = audioCfg.startScreenMode || 'STATIC';
-  const opts = ['STATIC MENU', 'HORIZONTAL CAROUSEL', 'GRID'].map(m => { const key = m === 'STATIC MENU' ? 'STATIC' : m === 'HORIZONTAL CAROUSEL' ? 'CAROUSEL' : 'GRID'; return key === current ? `★ ${m}` : m; });
+  const opts = ['LIST MENU', 'HORIZONTAL CAROUSEL', 'GRID'].map(m => { const key = m === 'LIST MENU' ? 'STATIC' : m === 'HORIZONTAL CAROUSEL' ? 'CAROUSEL' : 'GRID'; return key === current ? `★ ${m}` : m; });
   opts.push('BACK TO MENU');
   renderGenericOverlay('START SCREEN', opts);
 }
