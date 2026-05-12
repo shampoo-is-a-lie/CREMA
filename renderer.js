@@ -326,7 +326,7 @@ function handleInput(action) {
   else if (gameState === 'OSK') { handleOSKInput(action); }
   else if (gameState === 'JUKEBOX' || gameState === 'JUKEBOX_OVERLAY') { handleJukeboxInput(action); }
   else if (['OVERLAY', 'THEME_CATS', 'THEMES', 'MUSIC_STYLE', 'GAME_SCRAPE_MENU', 'CONFIRM_SCRAPE', 'SCRAPE_RESULT', 'GAMEPAD_MENU', 'WAKE_METHOD_MENU', 'START_SCREEN_MENU'].includes(gameState)) {
-    if (action === 'DOWN') { currentOverlayIndex = (currentOverlayIndex + 1) % overlayItems.length; playSound(sfxNav); updateOverlaySelection(); } else if (action === 'UP') { currentOverlayIndex = (currentOverlayIndex - 1 + overlayItems.length) % overlayItems.length; playSound(sfxNav); updateOverlaySelection(); }
+    if (action === 'DOWN') { currentOverlayIndex = nextOverlayIndex(currentOverlayIndex, 1); playSound(sfxNav); updateOverlaySelection(); } else if (action === 'UP') { currentOverlayIndex = nextOverlayIndex(currentOverlayIndex, -1); playSound(sfxNav); updateOverlaySelection(); }
     else if (action === 'BACK') {
       if (gameState === 'THEMES') openThemeCategoryMenu(); else if (gameState === 'THEME_CATS') openOverlay("MAIN_MENU"); else if (gameState === 'MUSIC_STYLE') openSoundOverlay(); else if (gameState === 'GAMEPAD_MENU' || gameState === 'WAKE_METHOD_MENU') openOverlay("MAIN_MENU"); else if (gameState === 'START_SCREEN_MENU') openOverlay("MAIN_MENU");
       else if (gameState === 'GAME_SCRAPE_MENU' || gameState === 'SCRAPE_RESULT') openOverlay("GAME_MENU");
@@ -506,10 +506,23 @@ async function refreshDatabase() {
 
 let previousGameState = 'START'; let currentOverlayType = 'MAIN_MENU';
 
+function isOverlaySection(item) { return typeof item === 'string' && item.startsWith('§'); }
+function nextOverlayIndex(from, dir) {
+  const N = overlayItems.length; let idx = (from + dir + N) % N; let guard = 0;
+  while (isOverlaySection(overlayItems[idx]) && guard++ < N) idx = (idx + dir + N) % N;
+  return idx;
+}
 function renderGenericOverlay(title, items, hintText = "") {
   playSound(sfxSelect); const bd = document.getElementById('overlay-backdrop'); const tit = document.getElementById('overlay-title'); const lst = document.getElementById('overlay-list');
-  lst.innerHTML = ''; currentOverlayIndex = 0; tit.innerText = title; overlayItems = items;
-  overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `overlay-${i}`; lst.appendChild(div); });
+  lst.innerHTML = ''; tit.innerText = title; overlayItems = items;
+  currentOverlayIndex = items.findIndex(it => !isOverlaySection(it));
+  if (currentOverlayIndex < 0) currentOverlayIndex = 0;
+  overlayItems.forEach((item, i) => {
+    const div = document.createElement('div');
+    if (isOverlaySection(item)) { div.className = 'overlay-section'; div.innerText = item.slice(1); }
+    else { div.className = 'overlay-item'; div.innerText = item; div.id = `overlay-${i}`; }
+    lst.appendChild(div);
+  });
 
   let hintEl = document.getElementById('overlay-hint');
   if (!hintEl) {
@@ -542,7 +555,7 @@ async function openOverlay(type) {
   if (gameState === 'START' || gameState === 'MAIN') { previousGameState = gameState; }
   gameState = 'OVERLAY'; currentOverlayType = type; setBlur(true);
 
-  if (type === "MAIN_MENU") { renderGenericOverlay("SYSTEM MENU", ["JUKEBOX MODE", "SOUND SETTINGS", "COLOR SCHEME", "SCREENSAVER SETTINGS", "GAMING HISTORY", "SHOW KEYBINDINGS", "GAMEPAD ICONS", "WAKE UP METHOD", "BATCH SCRAPE", "START SCREEN", "ABOUT CREMA", "QUIT CREMA", "CLOSE MENU"]); }
+  if (type === "MAIN_MENU") { renderGenericOverlay("SYSTEM MENU", ["§AUDIO", "JUKEBOX MODE", "SOUND SETTINGS", "§APPEARANCE", "COLOR SCHEME", "START SCREEN", "SCREENSAVER SETTINGS", "§CONTROLS", "SHOW KEYBINDINGS", "GAMEPAD ICONS", "WAKE UP METHOD", "§LIBRARY", "BATCH SCRAPE", "GAMING HISTORY", "§SYSTEM", "ABOUT CREMA", "QUIT CREMA", "CLOSE MENU"]); }
   else if (type === "GAME_MENU") {
     const game = filteredGames[currentGameIndex]; const localUrl = await window.api.checkLocalTrailer(game.Game);
     const favStr = game.FAV === "YES" ? "REMOVE FAV" : "ADD FAV"; const wantStr = game.WANT_TO_PLAY === "YES" ? "REMOVE WANT TO PLAY" : "ADD WANT TO PLAY"; const cmdStr = (game.LaunchCommand && game.LaunchCommand.trim() !== "") ? "EDIT LAUNCH COMMAND" : "ADD LAUNCH COMMAND"; const trStr = localUrl ? "DELETE TRAILER" : "DOWNLOAD TRAILER";
