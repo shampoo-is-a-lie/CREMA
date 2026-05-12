@@ -131,20 +131,29 @@ ipcMain.handle('update-last-played', (event, gameName) => {
     } catch(err) { return false; }
 });
 
-// --- NEW: WINDOW FOCUS & FOREGROUND LOGIC ---
+// --- WINDOW FOCUS & FOREGROUND LOGIC ---
 ipcMain.on('force-focus', () => {
     const win = BrowserWindow.getAllWindows()[0];
-    if (win) {
-        if (win.isMinimized()) win.restore();
-        win.show();
-        win.focus();
-        if (process.platform === 'win32') app.focus(); // Windows specific focus steal
+    if (!win) return;
 
-        // The ultimate hammer: force on top temporarily
-        win.setAlwaysOnTop(true, 'screen-saver');
-        setTimeout(() => {
-            win.setAlwaysOnTop(false);
-        }, 1000);
+    if (win.isMinimized()) win.restore();
+    win.show();
+    win.focus();
+    app.focus({ steal: true }); // Electron's own steal flag, works on some Linux WMs
+
+    // Visually pin on top, then release after the launcher has been pushed behind
+    win.setAlwaysOnTop(true, 'screen-saver');
+    setTimeout(() => win.setAlwaysOnTop(false), 2000);
+
+    // X11 only: wmctrl sends _NET_ACTIVE_WINDOW with CurrentTime, which most
+    // X11 WMs accept even with focus-stealing prevention enabled.
+    // On Wayland this is a no-op (wmctrl not installed / XWayland may ignore it).
+    if (process.platform === 'linux') {
+        try {
+            const hwnd = win.getNativeWindowHandle().readUInt32LE(0);
+            const hexId = '0x' + hwnd.toString(16);
+            execFile('wmctrl', ['-i', '-a', hexId], () => {});
+        } catch (_) {}
     }
 });
 
