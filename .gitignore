@@ -1,5 +1,8 @@
 node_modules/
 dist/
 GameManagerConfig/
+CREMA_CUSTOM_MUSIC/
 *.AppImage
 .vscode/
+assets/bin/linux/yt-dlp
+assets/bin/linux/ffmpeg
