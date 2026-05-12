@@ -631,6 +631,7 @@ function executeOverlayAction() {
       currentOverlayType = 'ABOUT_CREMA';
       renderGenericOverlay("ABOUT CREMA", ["BACK TO MENU"], "<span style='color: var(--accent); font-size: 26px; font-weight: bold; letter-spacing: 2px;'>CAFE NEUROTICO: CREMA</span><br><span style='color: var(--text_main); font-size: 16px;'>Version 1.0.0</span><br><br><span style='color: var(--text_sec); font-size: 18px; line-height: 1.6; display: inline-block; max-width: 750px; text-align: center;'><i style='color: var(--text_dim);'>\"Crema is the reddish-brown, frothy foam layer that sits on top of a freshly brewed espresso. It consists of water, coffee oils, and pressurized CO2 bubbles created during high-pressure extraction. It signifies freshness and proper pressure.\"</i><br><br><strong>CNGM and CREMA</strong> work together to satisfy our gaming needs.<br><br><strong>CAFE NEUROTICO GAME MANAGER</strong> is the desktop app: detail-focused, neurotic about your library, handling all the heavy lifting with automatic and manual importing.<br><br><strong>CREMA</strong> is the sweet foam on top. It is its fullscreen companion: laidback, easygoing, and focused purely on fun. A true connoisseur of good gaming and good music. Grab a controller and enjoy.<br><br>Proudly designed in Brazil 🇧🇷 by J.R.A.<br>shampooisalie@gmail.com</span>");
     }
+    else if (action === "CLOSE MENU") closeOverlay();
     else closeOverlay();
   }
   else if (gameState === 'THEME_CATS') { if (action === "BACK TO MENU") { openOverlay("MAIN_MENU"); } else { openThemeMenu(action); } }

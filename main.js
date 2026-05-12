@@ -225,7 +225,7 @@ ipcMain.handle('get-audio-config', () => {
 
 ipcMain.on('save-audio-config', (e, cfg) => { try { fs.writeFileSync(audioCfgPath, JSON.stringify(cfg)); } catch(err){} });
 ipcMain.handle('get-custom-music', () => { let playlist = []; try { if (fs.existsSync(musicDir)) { const files = fs.readdirSync(musicDir); for (let f of files) { if (f.toLowerCase().endsWith('.mp3') || f.toLowerCase().endsWith('.wav') || f.toLowerCase().endsWith('.ogg') || f.toLowerCase().endsWith('.flac')) { playlist.push(`file://${path.join(musicDir, f)}`); } } } } catch(e) {} return playlist; });
-ipcMain.handle('get-standard-bgm', (event, mode) => { const safeName = mode.toLowerCase().replace('-', ''); for (let ext of ['wav', 'mp3', 'ogg']) { const p = path.join(soundsDir, `bgm_${safeName}.${ext}`); if (fs.existsSync(p)) return `file://${p}`; } return null; });
+ipcMain.handle('get-standard-bgm', (event, mode) => { const safeName = mode.toLowerCase().replace(/-/g, ''); for (let ext of ['wav', 'mp3', 'ogg']) { const p = path.join(soundsDir, `bgm_${safeName}.${ext}`); if (fs.existsSync(p)) return `file://${p}`; } return null; });
 
 // --- NEW IPC: READ CN WALLPAPERS DIRECTORY ---
 ipcMain.handle('get-wallpapers', () => {
