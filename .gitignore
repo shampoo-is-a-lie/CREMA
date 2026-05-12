@@ -1,6 +1,7 @@
 node_modules/
 dist/
 GameManagerConfig/
+GameManagerConfig
 CREMA_CUSTOM_MUSIC/
 *.AppImage
 .vscode/
