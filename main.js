@@ -98,6 +98,7 @@ app.whenReady().then(() => {
     if(!fs.existsSync(trailersDir)) fs.mkdirSync(trailersDir, { recursive: true });
     try {
         db = new Database(dbPath);
+        db.pragma('journal_mode = WAL');
         db.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)").run();
         // FIX: Ensure the LastPlayed column exists so CREMA can register game launches
         try { db.prepare("ALTER TABLE games ADD COLUMN LastPlayed INTEGER DEFAULT 0").run(); } catch(e) {}
