@@ -114,6 +114,59 @@
 
     @keyframes bounce { 0% { height: 10px; } 100% { height: 40px; } }
 
+    /* === START SCREEN MODES === */
+    #start-screen { padding: 0; }
+    #start-static { display: flex; flex-direction: column; flex: 1; padding: 80px 80px 0 80px; }
+    #start-footer { padding: 10px 80px 30px; }
+
+    /* CAROUSEL */
+    #start-carousel { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    #carousel-hero-area { flex: 1; position: relative; overflow: hidden; }
+    #carousel-hero-area .hero-icon { font-size: 64px; font-weight: bold; color: var(--border_solid); position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); display: block; }
+    #carousel-hero-area .hero-mosaic { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0; }
+    #carousel-hero-area .mosaic-img:nth-child(1) { top: 5%; left: 2%; width: 50%; height: 88%; z-index: 1; transform: translate3d(-20px,-20px,-50px) rotate(-3deg); }
+    #carousel-hero-area .mosaic-img.show:nth-child(1) { transform: translate3d(0,0,0) rotate(-3deg); }
+    #carousel-hero-area .mosaic-img:nth-child(2) { bottom: 5%; right: 2%; width: 50%; height: 88%; z-index: 2; transform: translate3d(20px,20px,-30px) rotate(2deg); }
+    #carousel-hero-area .mosaic-img.show:nth-child(2) { transform: translate3d(0,0,0) rotate(2deg); }
+    #carousel-hero-area .mosaic-img:nth-child(3) { top: 5%; left: 28%; width: 46%; height: 90%; z-index: 3; border-color: var(--accent); transform: translate3d(0,50px,50px) scale(0.92); }
+    #carousel-hero-area .mosaic-img.show:nth-child(3) { transform: translate3d(0,0,50px) scale(1.04); box-shadow: 0 30px 40px rgba(0,0,0,0.9); }
+    #carousel-track-outer { height: 250px; overflow: hidden; display: flex; align-items: center; flex-shrink: 0; background: linear-gradient(to top, rgba(0,0,0,0.6), transparent); border-top: 1px solid var(--border); }
+    #carousel-track { display: flex; align-items: center; transition: transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94); }
+    .carousel-item { display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0.22; transform: scale(0.68); transition: opacity 0.3s ease, transform 0.3s ease; width: 200px; flex-shrink: 0; }
+    .carousel-item.near { opacity: 0.55; transform: scale(0.84); }
+    .carousel-item.selected { opacity: 1; transform: scale(1.15); }
+    .carousel-item-icon { width: 70px; height: 70px; background-color: var(--text_dim); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; }
+    .carousel-item.selected .carousel-item-icon { background-color: var(--text_main); filter: drop-shadow(0 0 12px var(--accent)); }
+    .carousel-item-label { font-size: 17px; font-weight: bold; color: var(--text_dim); text-align: center; line-height: 1.2; max-width: 180px; }
+    .carousel-item.selected .carousel-item-label { color: var(--text_main); text-shadow: 0 0 8px var(--accent); font-size: 19px; }
+
+    /* GRID */
+    #start-grid { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    #grid-top-hero { height: 280px; position: relative; overflow: hidden; flex-shrink: 0; border-bottom: 2px solid var(--border); transition: border-color 0.2s; }
+    #grid-top-hero.selected { border-color: var(--accent); }
+    #grid-top-label { position: absolute; bottom: 18px; left: 50px; font-size: 52px; font-weight: 900; color: var(--text_main); text-shadow: 0 2px 20px rgba(0,0,0,1); z-index: 5; letter-spacing: 3px; pointer-events: none; }
+    #grid-top-hero .hero-icon { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 3; }
+    #grid-top-hero .hero-mosaic { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 0; }
+    #grid-top-hero .mosaic-img { border-radius: 0; box-shadow: none; border: none; border-right: 2px solid rgba(0,0,0,0.3); }
+    #grid-top-hero .mosaic-img:nth-child(1) { top: 0; left: 0; width: 33.5%; height: 100%; transform: none; }
+    #grid-top-hero .mosaic-img.show:nth-child(1) { transform: none; }
+    #grid-top-hero .mosaic-img:nth-child(2) { top: 0; left: 33.5%; width: 33.5%; height: 100%; z-index: 1; transform: none; }
+    #grid-top-hero .mosaic-img.show:nth-child(2) { transform: none; }
+    #grid-top-hero .mosaic-img:nth-child(3) { top: 0; left: 67%; width: 33.5%; height: 100%; border-right: none; transform: none; }
+    #grid-top-hero .mosaic-img.show:nth-child(3) { transform: none; box-shadow: none; }
+    #grid-top-grad { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 60%); z-index: 4; pointer-events: none; }
+    #grid-cells { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); }
+    .grid-cell { position: relative; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border); overflow: hidden; transition: border-color 0.2s; }
+    .grid-cell.selected { border: 2px solid var(--accent); }
+    .grid-cell-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.28; transition: opacity 0.3s; }
+    .grid-cell.selected .grid-cell-bg { opacity: 0.55; }
+    .grid-cell-grad { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 70%); }
+    .grid-cell-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .grid-cell-icon { width: 50px; height: 50px; background-color: var(--text_dim); -webkit-mask-size: contain; -webkit-mask-position: center; -webkit-mask-repeat: no-repeat; transition: all 0.2s; }
+    .grid-cell.selected .grid-cell-icon { background-color: var(--text_main); filter: drop-shadow(0 0 10px var(--accent)); transform: scale(1.15); }
+    .grid-cell-name { font-size: 20px; font-weight: bold; color: var(--text_dim); text-align: center; }
+    .grid-cell.selected .grid-cell-name { color: var(--text_main); text-shadow: 0 0 10px var(--accent); }
+
   </style>
 </head>
 <body>
@@ -137,13 +190,36 @@
     </div>
 
     <div id="start-screen" class="screen blur-target hidden">
-      <div style="text-align: right; color: var(--text_dim); font-weight: bold; letter-spacing: 2px; padding-right: 80px;">Cafe Neurotico Game Manager: CREMA</div>
-      <div class="start-container">
-        <div class="cat-list" id="cat-list"></div>
-        <div class="hero-display">
-          <div class="hero-icon" id="hero-icon">STORE<br>PORTAL</div>
-          <div class="hero-mosaic" id="hero-mosaic"></div>
+      <!-- STATIC MENU MODE -->
+      <div id="start-static" style="display:flex;flex-direction:column;flex:1;">
+        <div style="text-align: right; color: var(--text_dim); font-weight: bold; letter-spacing: 2px; padding-right: 80px;">Cafe Neurotico Game Manager: CREMA</div>
+        <div class="start-container">
+          <div class="cat-list" id="cat-list"></div>
+          <div class="hero-display">
+            <div class="hero-icon" id="hero-icon">STORE<br>PORTAL</div>
+            <div class="hero-mosaic" id="hero-mosaic"></div>
+          </div>
         </div>
+      </div>
+      <!-- HORIZONTAL CAROUSEL MODE -->
+      <div id="start-carousel" class="hidden">
+        <div id="carousel-hero-area">
+          <div class="hero-icon" id="carousel-hero-icon"></div>
+          <div class="hero-mosaic" id="carousel-hero-mosaic"></div>
+        </div>
+        <div id="carousel-track-outer">
+          <div id="carousel-track"></div>
+        </div>
+      </div>
+      <!-- GRID MODE -->
+      <div id="start-grid" class="hidden">
+        <div id="grid-top-hero">
+          <div class="hero-mosaic" id="grid-hero-mosaic"></div>
+          <div id="grid-top-grad"></div>
+          <div class="hero-icon" id="grid-hero-icon">ALL GAMES</div>
+          <div id="grid-top-label">ALL GAMES</div>
+        </div>
+        <div id="grid-cells"></div>
       </div>
       <div class="footer" id="start-footer">Loading Hardware Inputs...</div>
     </div>
