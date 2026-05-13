@@ -105,7 +105,9 @@ function convertSafePath(rawPath) {
     return encodeURI(p).replace(/#/g, '%23').replace(/\?/g, '%3F');
 }
 
+let usingKeyboard = false;
 function getBtn(icon) { const iconPath = convertSafePath('assets/gamepad_icons/' + icon + '.png'); return `<span class="gp-btn-masked" style="-webkit-mask-image: url('${iconPath}');"></span>`; }
+function getKey(label) { return `<span class="kb-key">${label}</span>`; }
 function getMappedBtn(logicalBtn) {
   const layout = audioCfg.gamepadLayout || "XBOX"; let iconName = logicalBtn;
   if (layout === "XBOX") { const map = { 'SOUTH': 'XBOX_A', 'EAST': 'XBOX_B', 'WEST': 'XBOX_X', 'NORTH': 'XBOX_Y', 'START': 'XBOX_start', 'SELECT': 'XBOX_select' }; if (map[logicalBtn]) iconName = map[logicalBtn]; }
@@ -118,6 +120,19 @@ function renderHardwareIcons() {
   const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} Navigate &nbsp;&nbsp; ${getBtn('dpad_left')}${getBtn('dpad_right')} Page &nbsp;&nbsp; ${getMappedBtn('SOUTH')} Play &nbsp;&nbsp; ${getMappedBtn('EAST')} Back &nbsp;&nbsp; ${getMappedBtn('WEST')} Media &nbsp;&nbsp; ${getMappedBtn('NORTH')} Search &nbsp;&nbsp; ${getMappedBtn('SELECT')} Options &nbsp;&nbsp; ${getBtn('L3')}${getBtn('R3')} Music`;
   const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = `Press ${getMappedBtn('WEST')} for Trailer`;
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = getMappedBtn('SOUTH'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = getMappedBtn('NORTH'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = getMappedBtn('WEST');
+}
+function renderFootersForKeyboard() {
+  const k = getKey;
+  const startF = document.getElementById('start-footer'); if (startF) startF.innerHTML = `${k('↑')}${k('↓')} Navigate &nbsp;&nbsp;&nbsp; ${k('Enter')} Select &nbsp;&nbsp;&nbsp; ${k('M')} Menu`;
+  const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('←')}${k('→')} Category &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('X')} Media &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('Tab')} Options &nbsp;&nbsp; ${k('M')} Menu &nbsp;&nbsp; ${k('[')}${k(']')} Music`;
+  const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = `Press ${k('X')} for Trailer`;
+  const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = k('Enter'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = k('Y'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = k('X');
+  const ftr = document.getElementById('jb-footer'); if (ftr) ftr.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('X')} Fullscreen &nbsp;&nbsp; ${k('Tab')} Options`;
+}
+function setInputMethod(keyboard) {
+  if (keyboard === usingKeyboard) return;
+  usingKeyboard = keyboard;
+  if (keyboard) renderFootersForKeyboard(); else renderHardwareIcons();
 }
 
 async function initAudio() {
@@ -269,6 +284,7 @@ function pollGamepad() {
       const a = gp.buttons[0]?.pressed, x = gp.buttons[2]?.pressed, yBtn = gp.buttons[3]?.pressed;
       const anyBtn = Array.from(gp.buttons).some(b => b?.pressed);
       if (anyBtn) {
+        setInputMethod(false);
         inputDebounce = true; setTimeout(() => { inputDebounce = false; }, 180);
         if (a) handleSSAction('LAUNCH'); else if (yBtn) handleSSAction('FAV'); else if (x) handleSSAction('WANT'); else stopScreensaver();
       }
@@ -284,6 +300,7 @@ function pollGamepad() {
     const l = gp.buttons[14]?.pressed || (gp.axes && gp.axes[0] < -0.5); const r = gp.buttons[15]?.pressed || (gp.axes && gp.axes[0] > 0.5);
 
     if (u || d || l || r || a || b || x || yBtn || selBtn || st || l1 || r1 || l2 || r2 || l3 || r3) {
+      setInputMethod(false);
       inputDebounce = true; setTimeout(() => { inputDebounce = false; }, navRepeatDelay);
       if (u || d || l || r || l1 || r1) { navRepeatDelay = Math.max(40, navRepeatDelay - 35); } else { navRepeatDelay = 180; }
       try {
@@ -307,6 +324,7 @@ function pollGamepad() {
 window.addEventListener('keydown', (e) => {
   try {
     if (gameState === 'GAME_RUNNING') { if (e.key === 'Escape' || e.key === 'Backspace') wakeUpCrema(); return; }
+    setInputMethod(true);
     if (gameState === 'SCREENSAVER') { if (e.key === 'Enter') handleSSAction('LAUNCH'); else if (e.key === 'y' || e.key === 'Y') handleSSAction('FAV'); else if (e.key === 'x' || e.key === 'X') handleSSAction('WANT'); else stopScreensaver(); }
     else {
       resetIdleTimer();
