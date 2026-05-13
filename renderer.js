@@ -124,7 +124,7 @@ function renderHardwareIcons() {
 function renderFootersForKeyboard() {
   const k = getKey;
   const startF = document.getElementById('start-footer'); if (startF) startF.innerHTML = `${k('↑')}${k('↓')} Navigate &nbsp;&nbsp;&nbsp; ${k('Enter')} Select &nbsp;&nbsp;&nbsp; ${k('M')} Menu`;
-  const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('←')}${k('→')} Category &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('X')} Media &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('Tab')} Options &nbsp;&nbsp; ${k('M')} Menu &nbsp;&nbsp; ${k('[')}${k(']')} Music`;
+  const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('←')}${k('→')} Category &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('X')} Media &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('O')} Options &nbsp;&nbsp; ${k('M')} Menu &nbsp;&nbsp; ${k('[')}${k(']')} Music`;
   const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = `Press ${k('X')} for Trailer`;
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = k('Enter'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = k('Y'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = k('X');
   const ftr = document.getElementById('jb-footer'); if (ftr) ftr.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('X')} Fullscreen &nbsp;&nbsp; ${k('Tab')} Options`;
@@ -323,6 +323,7 @@ function pollGamepad() {
 
 window.addEventListener('keydown', (e) => {
   try {
+    if (e.key === 'Tab') e.preventDefault();
     if (gameState === 'GAME_RUNNING') { if (e.key === 'Escape' || e.key === 'Backspace') wakeUpCrema(); return; }
     setInputMethod(true);
     if (gameState === 'SCREENSAVER') { if (e.key === 'Enter') handleSSAction('LAUNCH'); else if (e.key === 'y' || e.key === 'Y') handleSSAction('FAV'); else if (e.key === 'x' || e.key === 'X') handleSSAction('WANT'); else stopScreensaver(); }
@@ -354,7 +355,7 @@ window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp') handleInput('UP'); else if (e.key === 'ArrowDown') handleInput('DOWN'); else if (e.key === 'ArrowLeft') handleInput('LEFT'); else if (e.key === 'ArrowRight') handleInput('RIGHT');
       else if (e.key === 'Enter' || e.key === ' ') handleInput('ACCEPT'); else if (e.key === 'Escape' || e.key === 'Backspace') handleInput('BACK');
       else if (e.key === 'x' || e.key === 'X') handleInput('X_BUTTON'); else if (e.key === 'y' || e.key === 'Y') handleInput('Y_BUTTON');
-      else if (e.key === 'Tab') handleInput('SELECT_BTN'); else if (e.key === 'm' || e.key === 'M') handleInput('START');
+      else if (e.key === 'o' || e.key === 'O') handleInput('SELECT_BTN'); else if (e.key === 'm' || e.key === 'M') handleInput('START');
       else if (e.key === 'PageUp') handleInput('L1'); else if (e.key === 'PageDown') handleInput('R1');
       else if (e.key === '[' || e.key === ',') handleInput('L3'); else if (e.key === ']' || e.key === '.') handleInput('R3');
     }
