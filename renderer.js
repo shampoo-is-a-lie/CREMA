@@ -328,6 +328,29 @@ window.addEventListener('keydown', (e) => {
     if (gameState === 'SCREENSAVER') { if (e.key === 'Enter') handleSSAction('LAUNCH'); else if (e.key === 'y' || e.key === 'Y') handleSSAction('FAV'); else if (e.key === 'x' || e.key === 'X') handleSSAction('WANT'); else stopScreensaver(); }
     else {
       resetIdleTimer();
+      if (gameState === 'OSK') {
+        if (e.key === 'Backspace') {
+          if (oskMode === 'SEARCH') { searchQuery = searchQuery.slice(0, -1); applyLiveFilters(false); }
+          else if (oskMode === 'JB_SEARCH') { jbSearchQuery = jbSearchQuery.slice(0, -1); renderJbList(); }
+          else tempOskString = tempOskString.slice(0, -1);
+          playSound(sfxNav); renderOSK(); return;
+        }
+        if (e.key === 'Enter') {
+          const savedR = oskR, savedC = oskC;
+          oskR = 5; oskC = 4; // DONE key position in the grid
+          handleOSKInput('ACCEPT');
+          if (gameState === 'OSK') { oskR = savedR; oskC = savedC; renderOSK(); }
+          return;
+        }
+        if (e.key.length === 1) {
+          const ch = e.key.toUpperCase();
+          if (oskMode === 'SEARCH') { searchQuery += ch; applyLiveFilters(false); }
+          else if (oskMode === 'JB_SEARCH') { jbSearchQuery += ch; renderJbList(); }
+          else tempOskString += ch;
+          playSound(sfxNav); renderOSK(); return;
+        }
+        // Arrow keys + Escape fall through to the existing routing below (OSK grid navigation)
+      }
       if (e.key === 'ArrowUp') handleInput('UP'); else if (e.key === 'ArrowDown') handleInput('DOWN'); else if (e.key === 'ArrowLeft') handleInput('LEFT'); else if (e.key === 'ArrowRight') handleInput('RIGHT');
       else if (e.key === 'Enter' || e.key === ' ') handleInput('ACCEPT'); else if (e.key === 'Escape' || e.key === 'Backspace') handleInput('BACK');
       else if (e.key === 'x' || e.key === 'X') handleInput('X_BUTTON'); else if (e.key === 'y' || e.key === 'Y') handleInput('Y_BUTTON');
