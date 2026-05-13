@@ -120,6 +120,7 @@ function renderHardwareIcons() {
   const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} Navigate &nbsp;&nbsp; ${getBtn('dpad_left')}${getBtn('dpad_right')} Page &nbsp;&nbsp; ${getMappedBtn('SOUTH')} Play &nbsp;&nbsp; ${getMappedBtn('EAST')} Back &nbsp;&nbsp; ${getMappedBtn('WEST')} Media &nbsp;&nbsp; ${getMappedBtn('NORTH')} Search &nbsp;&nbsp; ${getMappedBtn('SELECT')} Options &nbsp;&nbsp; ${getBtn('L3')}${getBtn('R3')} Music`;
   const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = `Press ${getMappedBtn('WEST')} for Trailer`;
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = getMappedBtn('SOUTH'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = getMappedBtn('NORTH'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = getMappedBtn('WEST');
+  const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} Navigate &nbsp;&nbsp; ${getMappedBtn('SOUTH')} Play &nbsp;&nbsp; ${getMappedBtn('EAST')} Back &nbsp;&nbsp; ${getMappedBtn('NORTH')} Search &nbsp;&nbsp; ${getMappedBtn('WEST')} Fullscreen &nbsp;&nbsp; ${getMappedBtn('SELECT')} Options`;
 }
 function renderFootersForKeyboard() {
   const k = getKey;
@@ -127,12 +128,30 @@ function renderFootersForKeyboard() {
   const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('←')}${k('→')} Category &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('X')} Media &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('O')} Options &nbsp;&nbsp; ${k('M')} Menu &nbsp;&nbsp; ${k('[')}${k(']')} Music`;
   const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = `Press ${k('X')} for Trailer`;
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = k('Enter'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = k('Y'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = k('X');
-  const ftr = document.getElementById('jb-footer'); if (ftr) ftr.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('X')} Fullscreen &nbsp;&nbsp; ${k('Tab')} Options`;
+  const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('X')} Fullscreen &nbsp;&nbsp; ${k('O')} Options`;
+}
+function updateJbFsHints() {
+  const hint = document.getElementById('jb-fs-controls-hint'); if (!hint) return;
+  const popup = document.getElementById('jb-fs-controls-popup'); if (!popup) return;
+  const rows = Array.from(popup.children);
+  const k = getKey;
+  if (usingKeyboard) {
+    hint.innerHTML = `${k('Y')} Controls`;
+    if (rows[1]) rows[1].innerHTML = `${k('Enter')} Play / Pause`;
+    if (rows[2]) rows[2].innerHTML = `${k('[')} / ${k(']')} Prev / Next Track`;
+    if (rows[3]) rows[3].innerHTML = `${k('X')} / ${k('Esc')} Exit Fullscreen`;
+  } else {
+    hint.innerHTML = `${getMappedBtn('NORTH')} Controls`;
+    if (rows[1]) rows[1].innerHTML = `${getMappedBtn('SOUTH')} Play / Pause`;
+    if (rows[2]) rows[2].innerHTML = `${getBtn('L3')} / ${getBtn('R3')} Prev / Next Track`;
+    if (rows[3]) rows[3].innerHTML = `${getMappedBtn('WEST')} / ${getMappedBtn('EAST')} Exit Fullscreen`;
+  }
 }
 function setInputMethod(keyboard) {
   if (keyboard === usingKeyboard) return;
   usingKeyboard = keyboard;
   if (keyboard) renderFootersForKeyboard(); else renderHardwareIcons();
+  updateJbFsHints();
 }
 
 async function initAudio() {
@@ -1587,6 +1606,7 @@ function toggleJbFullscreen() {
     </div>
     `;
     document.getElementById('jukebox-screen').appendChild(fsView);
+    updateJbFsHints();
   }
 
   if (jbIsFullscreen) {
