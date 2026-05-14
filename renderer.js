@@ -1446,9 +1446,10 @@ function formatJbTime(sec) {
 }
 
 async function openJukebox() {
-  gameState = 'JUKEBOX'; setBlur(true);
-  document.getElementById('main-screen').classList.add('hidden');
-  document.getElementById('start-screen').classList.add('hidden');
+  gameState = 'JUKEBOX'; setBlur(false);
+  ['start-screen', 'main-screen', 'gallery-screen', 'ggp-screen'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.add('hidden');
+  });
   document.getElementById('jukebox-screen').classList.remove('hidden');
   document.getElementById('jb-footer').innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} ${t('footer.navigate')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.play')} &nbsp;&nbsp; ${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('WEST')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
 
@@ -1475,6 +1476,8 @@ function closeJukebox() {
 
   if (gameState === 'START') {
     document.getElementById('start-screen').classList.remove('hidden');
+  } else if (gameState === 'GALLERY' || gameState === 'GALLERY_GAMEPAGE') {
+    document.getElementById('gallery-screen').classList.remove('hidden');
   } else {
     document.getElementById('main-screen').classList.remove('hidden');
   }
