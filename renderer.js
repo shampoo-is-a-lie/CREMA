@@ -118,7 +118,7 @@ const THEMES = {
 const THEME_CATEGORIES = { "Originals & System": ["CREMA (DEFAULT)", "DARK GRAY", "CYBERPUNK", "SNOW", "MOVIESFLIX", "VAPOUR OS", "PSIV BLUE", "GREEN BOX", "WIN XP"], "Gaming Legends": ["GAME BOY DMG", "PIP BOY", "SEVASTOPOL", "RIP AND TEAR CLASSIC", "SUPER BROTHERS", "GREEN HILL", "NES", "SNES"], "Aesthetics": ["EARTHY & ORGANIC", "DOPAMINE BRIGHTS", "RETRO REVIVAL"], "Linux Ricing": ["DRACULA", "GRUVBOX", "NORD", "SOLARIZED DARK", "SOLARIZED LIGHT", "CATPPUCCIN LATTE", "CATPPUCCIN FRAPPÉ", "CATPPUCCIN MACCHIATO", "CATPPUCCIN MOCHA", "TOKYO NIGHT", "EVERFOREST", "ROSÉ PINE"], "PSIII Colors": ["PSIII CLASSIC", "PSIII RED", "PSIII GREEN", "PSIII BLUE", "PSIII PURPLE", "PSIII GOLD", "PSIII SILVER"] };
 
 function updateAppScale() { const wrapper = document.getElementById('app-scale-wrapper'); if (!wrapper) return; const scaleX = window.innerWidth / 1920; const scaleY = window.innerHeight / 1080; const scale = Math.min(scaleX, scaleY); wrapper.style.transform = `scale(${scale})`; wrapper.style.left = `${(window.innerWidth - (1920 * scale)) / 2}px`; wrapper.style.top = `${(window.innerHeight - (1080 * scale)) / 2}px`; } window.addEventListener('resize', updateAppScale);
-function setBlur(enable) { const s = document.getElementById('start-screen'); const m = document.getElementById('main-screen'); if (enable) { s.classList.add('is-blurred'); m.classList.add('is-blurred'); } else { s.classList.remove('is-blurred'); m.classList.remove('is-blurred'); } }
+function setBlur(enable) { document.querySelectorAll('.blur-target').forEach(el => el.classList.toggle('is-blurred', enable)); }
 function isVideoActive() { const vid = document.getElementById('video-player'); return vid && !vid.paused && vid.src && vid.src.includes('file://'); }
 function applyTheme(themeName) { activeTheme = THEMES[themeName] ? themeName : "CREMA (DEFAULT)"; const t = THEMES[activeTheme]; const root = document.documentElement; Object.keys(t).forEach(key => root.style.setProperty(`--${key}`, t[key])); }
 
@@ -548,7 +548,7 @@ function handleOSKInput(action) {
     else if (oskMode === 'LAUNCH_CMD' || oskMode === 'RENAME_GAME') { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); openOverlay('GAME_MENU'); }
     else if (oskMode === 'SGDB_API' || oskMode === 'REFINE_SEARCH') { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); openGameScrapeMenu(); }
     else if (oskMode === 'NEW_PLAYLIST' || oskMode === 'NEW_PLAYLIST_ADD' || oskMode === 'JB_SEARCH' || oskMode === 'RENAME_PLAYLIST') { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); gameState = 'JUKEBOX'; }
-    else if (oskMode === 'GALLERY_SEARCH') { galleryQuery = ''; applyGalleryFilter(); renderGalleryGrid(); document.getElementById('osk-backdrop').classList.add('hidden'); gameState = 'GALLERY'; }
+    else if (oskMode === 'GALLERY_SEARCH') { galleryQuery = ''; applyGalleryFilter(); renderGalleryGrid(); document.getElementById('osk-backdrop').classList.add('hidden'); setBlur(false); gameState = 'GALLERY'; }
   }
   else if (action === 'Y_BUTTON') {
     if (oskMode === 'SEARCH') { searchQuery = ""; applyLiveFilters(false); }
@@ -561,7 +561,7 @@ function handleOSKInput(action) {
     playSound(sfxSelect); const key = oskKeys[oskR][oskC]; let targetStr = oskMode === 'SEARCH' ? searchQuery : (oskMode === 'JB_SEARCH' ? jbSearchQuery : tempOskString);
     if (key === 'SPACE') targetStr += " "; else if (key === 'BKSP') targetStr = targetStr.slice(0, -1); else if (key === 'CLEAR') targetStr = "";
     else if (key === 'DONE') {
-      if (oskMode === 'GALLERY_SEARCH') { galleryQuery = targetStr; applyGalleryFilter(); renderGalleryGrid(); document.getElementById('osk-backdrop').classList.add('hidden'); gameState = 'GALLERY'; return; }
+      if (oskMode === 'GALLERY_SEARCH') { galleryQuery = targetStr; applyGalleryFilter(); renderGalleryGrid(); document.getElementById('osk-backdrop').classList.add('hidden'); setBlur(false); gameState = 'GALLERY'; return; }
       if (oskMode === 'SEARCH') { closeOSK(); return; }
       else if (oskMode === 'LAUNCH_CMD') { filteredGames[currentGameIndex].LaunchCommand = targetStr; window.api.saveDbField({game: filteredGames[currentGameIndex].Game, field: 'LaunchCommand', value: targetStr}); document.getElementById('osk-backdrop').classList.add('hidden'); refreshDatabase(); openOverlay('GAME_MENU'); return; }
       else if (oskMode === 'RENAME_GAME') { const oldName = filteredGames[currentGameIndex].Game; filteredGames[currentGameIndex].Game = targetStr; window.api.saveDbField({game: oldName, field: 'Game', value: targetStr}); document.getElementById('osk-backdrop').classList.add('hidden'); refreshDatabase(); openOverlay('GAME_MENU'); return; }
