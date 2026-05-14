@@ -125,6 +125,61 @@
     @keyframes bounce { 0% { height: 10px; } 100% { height: 40px; } }
     .kb-key { display: inline-block; background: var(--bg_panel); border: 1px solid var(--border_solid); border-bottom: 2px solid var(--border_solid); border-radius: 4px; padding: 1px 6px; font-family: monospace; font-size: 14px; font-weight: bold; color: var(--text_main); vertical-align: middle; margin: 0 1px; line-height: 1.4; }
 
+    /* === GALLERY VIEW === */
+    #gallery-screen { padding: 0; }
+    #gallery-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    #gallery-bg-img { width: 100%; height: 100%; object-fit: cover; opacity: 0.07; filter: blur(8px); display: block; }
+    #gallery-bg-grad { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.65) 35%, rgba(0,0,0,0.95) 100%); z-index: 1; pointer-events: none; }
+    /* Hero banner */
+    #gallery-hero { position: relative; z-index: 2; height: 265px; flex-shrink: 0; overflow: hidden; }
+    #gallery-hero-img { width: 100%; height: 100%; object-fit: cover; display: block; animation: galleryKenBurns 12s ease-in-out infinite alternate; }
+    @keyframes galleryKenBurns { from { transform: scale(1.04) translateX(-1%); } to { transform: scale(1.1) translateX(1%); } }
+    #gallery-hero-grad { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.92) 100%); z-index: 1; pointer-events: none; }
+    #gallery-header { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; align-items: center; gap: 16px; padding: 22px 50px 10px; }
+    #gallery-cat-icon { width: 32px; height: 32px; background-color: var(--accent); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; flex-shrink: 0; filter: drop-shadow(0 1px 6px rgba(0,0,0,0.9)); }
+    #gallery-cat-name { font-size: 26px; font-weight: 900; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; text-shadow: 0 2px 8px rgba(0,0,0,1); }
+    #gallery-search-tag { font-size: 16px; color: rgba(255,255,255,0.75); font-style: italic; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+    #gallery-count { font-size: 14px; color: rgba(255,255,255,0.6); margin-left: auto; text-shadow: 0 1px 4px rgba(0,0,0,0.9); }
+    #gallery-hero-game-name { position: absolute; bottom: 16px; right: 50px; z-index: 2; font-size: 26px; font-weight: 900; color: #fff; text-shadow: 0 2px 14px rgba(0,0,0,1); text-align: right; max-width: 55%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Grid */
+    #gallery-grid { position: relative; z-index: 2; flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(9, 1fr); grid-auto-rows: auto; gap: 10px; padding: 12px 50px 12px; overflow-y: auto; overflow-x: hidden; align-content: start; }
+    #gallery-grid::-webkit-scrollbar { width: 0; }
+    .gallery-section-header { grid-column: 1 / -1; font-size: 12px; font-weight: 900; letter-spacing: 3px; padding: 5px 8px; border-radius: 4px; }
+    .gallery-section-header.recent { background: var(--accent); color: rgba(0,0,0,0.85); }
+    .gallery-section-header.all { background: var(--bg_panel); color: var(--text_dim); border: 1px solid var(--border_solid); }
+    .gcell { display: flex; flex-direction: column; height: 330px; border-radius: 8px; overflow: hidden; border: 3px solid transparent; transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease; background: var(--bg_panel); cursor: pointer; }
+    .gcell-cover-area { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+    .gcell-cover-area img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .gcell-footer { height: 48px; flex-shrink: 0; padding: 5px 8px; display: flex; flex-direction: column; justify-content: center; gap: 3px; background: var(--bg_panel); }
+    .gcell-title { font-size: 11px; font-weight: bold; color: var(--text_sec); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gcell-play-btn { background: var(--accent); color: rgba(0,0,0,0.85); border: none; border-radius: 3px; font-size: 9px; font-weight: 900; padding: 2px 7px; cursor: pointer; align-self: flex-start; letter-spacing: 1px; }
+    .gcell-badge { position: absolute; bottom: 5px; right: 5px; width: 16px; height: 16px; background-color: rgba(255,255,255,0.7); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.8)); }
+    .gcell.selected { border-color: var(--accent); transform: scale(1.04); box-shadow: 0 0 18px var(--accent), 0 8px 24px rgba(0,0,0,0.85); z-index: 10; }
+    .gcell-noart { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: var(--text_dim); font-size: 11px; text-align: center; padding: 8px; box-sizing: border-box; }
+
+    /* === GALLERY GAMEPAGE === */
+    #ggp-screen { padding: 0; }
+    #ggp-hero { position: relative; height: 370px; overflow: hidden; flex-shrink: 0; }
+    #ggp-hero-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    #ggp-hero-grad { position: absolute; bottom: 0; left: 0; width: 100%; height: 80%; background: linear-gradient(to top, rgba(0,0,0,0.97), transparent); z-index: 2; }
+    #ggp-title { position: absolute; bottom: 18px; left: 50px; right: 280px; z-index: 3; font-size: 40px; font-weight: 900; color: #fff; text-shadow: 0 2px 20px rgba(0,0,0,1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.15; }
+    #ggp-badges { position: absolute; bottom: 22px; right: 50px; z-index: 3; display: flex; gap: 10px; align-items: center; }
+    #ggp-body { display: flex; flex: 1; min-height: 0; gap: 24px; padding: 16px 50px 8px; overflow: hidden; }
+    #ggp-media { width: 200px; flex-shrink: 0; border-radius: 12px; overflow: hidden; position: relative; background: var(--bg_panel); border: 2px solid var(--border_solid); align-self: stretch; }
+    #ggp-media-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    #ggp-media-ss { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+    #ggp-media-vid { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+    #ggp-media-hint { position: absolute; bottom: 6px; right: 8px; font-size: 11px; color: rgba(255,255,255,0.5); font-weight: bold; z-index: 2; }
+    #ggp-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+    #ggp-stats-row { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .ggp-stat { background: var(--bg_panel); border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px; text-align: center; min-width: 0; }
+    .ggp-stat-label { font-size: 10px; font-weight: 900; color: var(--accent); text-transform: uppercase; letter-spacing: 1px; }
+    .ggp-stat-val { font-size: 15px; font-weight: bold; color: var(--text_main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+    #ggp-desc { font-size: 21px; color: var(--text_sec); line-height: 1.6; overflow: hidden; flex: 1; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; }
+    #ggp-extra { font-size: 17px; color: var(--text_dim); flex-shrink: 0; line-height: 1.7; }
+    #ggp-extra .similar-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: var(--border_solid); text-underline-offset: 2px; }
+    #ggp-extra .similar-link:hover { opacity: 0.75; }
+
     /* === START SCREEN MODES === */
     #start-screen { padding: 0; }
     #start-static { display: flex; flex-direction: column; flex: 1; padding: 80px 80px 0 80px; }
@@ -327,6 +382,53 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- ═══ GALLERY SCREEN ═══ -->
+    <div id="gallery-screen" class="screen blur-target hidden">
+      <div id="gallery-bg"><img id="gallery-bg-img" src="" alt=""></div>
+      <div id="gallery-bg-grad"></div>
+      <div id="gallery-hero">
+        <img id="gallery-hero-img" src="" alt="">
+        <div id="gallery-hero-grad"></div>
+        <div id="gallery-header">
+          <div id="gallery-cat-icon"></div>
+          <div id="gallery-cat-name"></div>
+          <div id="gallery-search-tag"></div>
+          <div id="gallery-count"></div>
+        </div>
+        <div id="gallery-hero-game-name"></div>
+      </div>
+      <div id="gallery-grid"></div>
+      <div class="footer" id="gallery-footer" style="position: relative; z-index: 2;">Loading Hardware Inputs...</div>
+    </div>
+
+    <!-- ═══ GALLERY GAMEPAGE ═══ -->
+    <div id="ggp-screen" class="screen blur-target hidden">
+      <div id="ggp-hero">
+        <img id="ggp-hero-img" src="" alt="">
+        <div id="ggp-hero-grad"></div>
+        <div id="ggp-title"></div>
+        <div id="ggp-badges">
+          <div id="ggp-fav-badge" style="display:none; font-size:22px; color: var(--accent);">★</div>
+          <div id="ggp-want-badge" style="display:none; font-size:22px; color: var(--text_sec);">⚑</div>
+          <div id="ggp-proton-badge" style="font-size:16px; font-weight:900; padding: 4px 10px; background: var(--bg_panel); border-radius:6px; display:none;"></div>
+        </div>
+      </div>
+      <div id="ggp-body">
+        <div id="ggp-media">
+          <img id="ggp-media-img" src="" alt="">
+          <img id="ggp-media-ss" src="" alt="">
+          <video id="ggp-media-vid" loop playsinline></video>
+          <div id="ggp-media-hint"></div>
+        </div>
+        <div id="ggp-info">
+          <div id="ggp-stats-row"></div>
+          <div id="ggp-desc"></div>
+          <div id="ggp-extra"></div>
+        </div>
+      </div>
+      <div class="footer" id="ggp-footer">Loading Hardware Inputs...</div>
     </div>
 
     <div id="overlay-backdrop" class="overlay-backdrop hidden">

@@ -252,6 +252,11 @@
     "en": "ENGLISH",
     "pt_BR": "PORTUGUÊS (BR)"
   },
+  "browse": {
+    "mode": "MODO DE NAVEGAÇÃO",
+    "list": "MODO LISTA",
+    "gallery": "MODO GALERIA"
+  },
   "html": {
     "sleep_title": "JOGO EM EXECUÇÃO",
     "store_portal": "PORTAL DE LOJAS",
