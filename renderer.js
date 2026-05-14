@@ -2053,8 +2053,14 @@ function renderGalleryGrid() {
 
 function updateGallerySelection(animate = true) {
   document.querySelectorAll('.gcell').forEach((el, i) => el.classList.toggle('selected', i === galleryIndex));
-  const sel = document.getElementById(`gcell-${galleryIndex}`);
-  if (sel) sel.scrollIntoView({ behavior: animate ? 'smooth' : 'instant', block: 'nearest' });
+  const scroller = document.getElementById('gallery-scroll');
+  if (!animate && galleryIndex === 0 && scroller) {
+    // Reset to top so the RECENT GAMES section header is visible
+    scroller.scrollTop = 0;
+  } else {
+    const sel = document.getElementById(`gcell-${galleryIndex}`);
+    if (sel) sel.scrollIntoView({ behavior: animate ? 'smooth' : 'instant', block: 'nearest' });
+  }
   const game = galleryGames[galleryIndex];
   if (game) updateGalleryBg(game);
 }
