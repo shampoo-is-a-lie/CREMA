@@ -396,7 +396,7 @@ window.addEventListener('keydown', (e) => {
         if (e.key === 'Backspace') {
           if (oskMode === 'SEARCH') { searchQuery = searchQuery.slice(0, -1); applyLiveFilters(false); }
           else if (oskMode === 'JB_SEARCH') { jbSearchQuery = jbSearchQuery.slice(0, -1); renderJbList(); }
-          else if (oskMode === 'GALLERY_SEARCH') { tempOskString = tempOskString.slice(0, -1); galleryQuery = tempOskString; applyGalleryFilter(); renderGalleryGrid(); }
+          else if (oskMode === 'GALLERY_SEARCH') { galleryQuery = galleryQuery.slice(0, -1); applyGalleryFilter(); renderGalleryGrid(); }
           else tempOskString = tempOskString.slice(0, -1);
           playSound(sfxNav); renderOSK(); return;
         }
@@ -411,7 +411,7 @@ window.addEventListener('keydown', (e) => {
           const ch = e.key.toUpperCase();
           if (oskMode === 'SEARCH') { searchQuery += ch; applyLiveFilters(false); }
           else if (oskMode === 'JB_SEARCH') { jbSearchQuery += ch; renderJbList(); }
-          else if (oskMode === 'GALLERY_SEARCH') { tempOskString += ch; galleryQuery = tempOskString; applyGalleryFilter(); renderGalleryGrid(); }
+          else if (oskMode === 'GALLERY_SEARCH') { galleryQuery += ch; applyGalleryFilter(); renderGalleryGrid(); }
           else tempOskString += ch;
           playSound(sfxNav); renderOSK(); return;
         }
@@ -525,12 +525,12 @@ function handleInput(action) {
 }
 function openOSK(mode, title, initialVal) {
   gameState = 'OSK'; playSound(sfxSelect); oskR = 0; oskC = 0; oskMode = mode;
-  if (mode === 'SEARCH') searchQuery = initialVal || ""; else tempOskString = initialVal || "";
+  if (mode === 'SEARCH') searchQuery = initialVal || ""; else if (mode === 'GALLERY_SEARCH') galleryQuery = initialVal || ""; else tempOskString = initialVal || "";
   document.getElementById('osk-title').innerText = title; setBlur(true); document.getElementById('osk-backdrop').classList.remove('hidden'); renderOSK();
 }
 function closeOSK() { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); gameState = 'MAIN'; setBlur(false); }
 function renderOSK() {
-  let targetStr = oskMode === 'SEARCH' ? searchQuery : tempOskString; document.getElementById('osk-query').innerText = targetStr + (targetStr.length < 50 ? "_" : "");
+  let targetStr = oskMode === 'SEARCH' ? searchQuery : oskMode === 'GALLERY_SEARCH' ? galleryQuery : tempOskString; document.getElementById('osk-query').innerText = targetStr + (targetStr.length < 50 ? "_" : "");
   const grid = document.getElementById('osk-grid'); grid.innerHTML = '';
   for(let r=0; r<OSK_ROWS; r++) {
     for(let c=0; c<OSK_COLS; c++) {
@@ -553,12 +553,12 @@ function handleOSKInput(action) {
   else if (action === 'Y_BUTTON') {
     if (oskMode === 'SEARCH') { searchQuery = ""; applyLiveFilters(false); }
     else if (oskMode === 'JB_SEARCH') { jbSearchQuery = ""; renderJbList(); }
-    else if (oskMode === 'GALLERY_SEARCH') { tempOskString = ""; galleryQuery = ""; applyGalleryFilter(); renderGalleryGrid(); }
+    else if (oskMode === 'GALLERY_SEARCH') { galleryQuery = ""; applyGalleryFilter(); renderGalleryGrid(); }
     else tempOskString = "";
     playSound(sfxBack); renderOSK();
   }
   else if (action === 'ACCEPT') {
-    playSound(sfxSelect); const key = oskKeys[oskR][oskC]; let targetStr = oskMode === 'SEARCH' ? searchQuery : (oskMode === 'JB_SEARCH' ? jbSearchQuery : tempOskString);
+    playSound(sfxSelect); const key = oskKeys[oskR][oskC]; let targetStr = oskMode === 'SEARCH' ? searchQuery : oskMode === 'JB_SEARCH' ? jbSearchQuery : oskMode === 'GALLERY_SEARCH' ? galleryQuery : tempOskString;
     if (key === 'SPACE') targetStr += " "; else if (key === 'BKSP') targetStr = targetStr.slice(0, -1); else if (key === 'CLEAR') targetStr = "";
     else if (key === 'DONE') {
       if (oskMode === 'GALLERY_SEARCH') { galleryQuery = targetStr; applyGalleryFilter(); renderGalleryGrid(); document.getElementById('osk-backdrop').classList.add('hidden'); setBlur(false); gameState = 'GALLERY'; return; }
