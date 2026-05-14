@@ -44,7 +44,7 @@ let currentCategoryIndex = 0, currentGameIndex = 0, currentOverlayIndex = 0, cur
 let overlayItems = [], searchResults = [];
 
 // Default to 5 recent games for CREMA
-let recentGamesCount = 5;
+let recentGamesCount = 9;
 let numRecentInList = 0;
 
 let trailerTimeout = null, screenshotInterval = null, bgmFadeInterval = null;
@@ -548,7 +548,7 @@ function handleOSKInput(action) {
     else if (oskMode === 'LAUNCH_CMD' || oskMode === 'RENAME_GAME') { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); openOverlay('GAME_MENU'); }
     else if (oskMode === 'SGDB_API' || oskMode === 'REFINE_SEARCH') { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); openGameScrapeMenu(); }
     else if (oskMode === 'NEW_PLAYLIST' || oskMode === 'NEW_PLAYLIST_ADD' || oskMode === 'JB_SEARCH' || oskMode === 'RENAME_PLAYLIST') { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); gameState = 'JUKEBOX'; }
-    else if (oskMode === 'GALLERY_SEARCH') { galleryQuery = ''; applyGalleryFilter(); renderGalleryGrid(); document.getElementById('osk-backdrop').classList.add('hidden'); setBlur(false); gameState = 'GALLERY'; }
+    else if (oskMode === 'GALLERY_SEARCH') { playSound(sfxBack); document.getElementById('osk-backdrop').classList.add('hidden'); setBlur(false); gameState = 'GALLERY'; }
   }
   else if (action === 'Y_BUTTON') {
     if (oskMode === 'SEARCH') { searchQuery = ""; applyLiveFilters(false); }
@@ -712,7 +712,7 @@ function openHistoryMenu() {
   currentOverlayType = 'HISTORY_MENU';
   playSound(sfxSelect);
 
-  const counts = [0, 5, 10, 15, 20];
+  const counts = [0, 5, 9, 18];
   const labels = counts.map(n => n === 0 ? 'OFF' : `${n} ${t('history.games')}`);
   const mapped = labels.map((label, i) => counts[i] === recentGamesCount ? '★ ' + label : label);
 
@@ -2060,12 +2060,13 @@ function renderGalleryGrid() {
     cell.id = `gcell-${i}`;
     const imgSrc = game.CoverArt ? convertSafePath(game.CoverArt) : '';
     const logo = getGalleryStoreLogo(game.Store);
-    const badge = logo ? `<div class="gcell-badge" style="-webkit-mask-image:url('${logo}');"></div>` : '';
     const playBtn = (game.LaunchCommand && String(game.LaunchCommand).trim()) ? `<button class="gcell-play-btn">▶ PLAYABLE</button>` : '';
+    const storeBadge = logo ? `<div class="gcell-store-badge" style="-webkit-mask-image:url('${logo}');"></div>` : '';
     const coverArea = imgSrc
-      ? `<div class="gcell-cover-area"><img src="${imgSrc}" alt="">${badge}</div>`
-      : `<div class="gcell-cover-area"><div class="gcell-noart">${game.Game}</div>${badge}</div>`;
-    cell.innerHTML = `${coverArea}<div class="gcell-footer"><div class="gcell-title">${game.Game}</div>${playBtn}</div>`;
+      ? `<div class="gcell-cover-area"><img src="${imgSrc}" alt=""></div>`
+      : `<div class="gcell-cover-area"><div class="gcell-noart">${game.Game}</div></div>`;
+    const footerRow = (playBtn || storeBadge) ? `<div class="gcell-footer-row">${playBtn}${storeBadge}</div>` : '';
+    cell.innerHTML = `${coverArea}<div class="gcell-footer"><div class="gcell-title">${game.Game}</div>${footerRow}</div>`;
     cell.addEventListener('click', () => { galleryIndex = i; playSound(sfxSelect); openGalleryGamepage(galleryGames[i]); });
     grid.appendChild(cell);
   });
