@@ -102,10 +102,26 @@ app.whenReady().then(() => {
         db.prepare("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)").run();
         // FIX: Ensure the LastPlayed column exists so CREMA can register game launches
         try { db.prepare("ALTER TABLE games ADD COLUMN LastPlayed INTEGER DEFAULT 0").run(); } catch(e) {}
+        try { db.prepare("ALTER TABLE games ADD COLUMN Description_i18n TEXT DEFAULT ''").run(); } catch(e) {}
+        try { db.prepare("ALTER TABLE games ADD COLUMN Franchise TEXT DEFAULT ''").run(); } catch(e) {}
     } catch (err) {}
     createWindow();
 });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+
+const STEAM_LANG_MAP = { en: 'english', pt_BR: 'brazilian' };
+async function fetchDescI18n(appId, enDesc) {
+    const lang = db?.prepare("SELECT value FROM settings WHERE key='language'").get()?.value || 'en';
+    const i18n = { en: enDesc };
+    if (lang !== 'en' && STEAM_LANG_MAP[lang]) {
+        try {
+            const r = await fetch(`https://store.steampowered.com/api/appdetails?appids=${appId}&l=${STEAM_LANG_MAP[lang]}`);
+            const d = await r.json();
+            if (d[appId]?.success) i18n[lang] = d[appId].data.short_description || enDesc;
+        } catch(e) {}
+    }
+    return JSON.stringify(i18n);
+}
 
 ipcMain.handle('get-basedir', () => baseDir);
 
@@ -116,7 +132,7 @@ ipcMain.on('launch-game', (event, cmd) => {
     child.unref();
 });
 ipcMain.on('quit-app', () => app.quit());
-const SAVE_DB_ALLOWED_FIELDS = new Set(['FAV', 'WANT_TO_PLAY', 'LaunchCommand', 'Game', 'CoverArt', 'Screenshot', 'DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'ProtonTier', 'SteamAppID', 'HLTB_Main']);
+const SAVE_DB_ALLOWED_FIELDS = new Set(['FAV', 'WANT_TO_PLAY', 'LaunchCommand', 'Game', 'CoverArt', 'Screenshot', 'DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'Description_i18n', 'ProtonTier', 'SteamAppID', 'HLTB_Main']);
 ipcMain.on('save-db-field', (event, { game, field, value }) => { if (!db || !SAVE_DB_ALLOWED_FIELDS.has(field)) return; try { db.prepare(`UPDATE games SET ${field} = ? WHERE Game = ?`).run(value, game); } catch (e) {} });
 ipcMain.handle('clear-history', () => {
     if (!db) return false;
@@ -188,6 +204,7 @@ async function downloadImage(url, dest) { try { const res = await fetch(url, { h
 
 ipcMain.handle('get-setting', (e, key) => { try { const row = db.prepare("SELECT value FROM settings WHERE key=?").get(key); return row ? row.value : null; } catch(e) { return null; } });
 ipcMain.handle('set-setting', (e, key, val) => { try { db.prepare("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)").run(key, val); return true; } catch(e) { return false; } });
+ipcMain.handle('get-strings', (_, lang) => require('./i18n')(lang || 'en'));
 
 ipcMain.handle('search-steam', async (e, gameName) => { try { let res = await fetch(`https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(gameName)}&l=english&cc=US`); let data = await res.json(); if (!data.items || data.items.length === 0) return []; return data.items.map(item => ({ id: item.id, name: item.name })); } catch(e) { return []; } });
 
@@ -251,7 +268,8 @@ ipcMain.handle('scrape-steam-data', async (e, gameName, mode, appId) => {
         }
         if (mode === 'METADATA' || mode === 'ALL') {
             let genre = appData.genres ? appData.genres.map(g => g.description).join(', ') : ""; let release = appData.release_date && appData.release_date.date ? appData.release_date.date.slice(-4) : ""; let meta = appData.metacritic ? appData.metacritic.score : ""; let dev = appData.developers ? appData.developers.join(', ') : ""; let pub = appData.publishers ? appData.publishers.join(', ') : ""; let desc = appData.short_description || "";
-            db.prepare("UPDATE games SET GENRE=?, RELEASED=?, METACRITIC=?, DEV=?, PUB=?, Description=?, SteamAppID=? WHERE Game=?").run(genre, release, meta, dev, pub, desc, appId, gameName);
+            const descI18n = await fetchDescI18n(appId, desc);
+            db.prepare("UPDATE games SET GENRE=?, RELEASED=?, METACRITIC=?, DEV=?, PUB=?, Description=?, Description_i18n=?, SteamAppID=? WHERE Game=?").run(genre, release, meta, dev, pub, desc, descI18n, appId, gameName);
             overallSuccess = true;
         }
         return overallSuccess;

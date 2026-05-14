@@ -8,6 +8,29 @@ let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "AMBIENT", theme: "CR
 let customPlaylist = []; let customIndex = 0; let isCustom = false;
 let npTimeout = null;
 
+let strings = {};
+let currentLang = 'en';
+function t(key, vars = {}) {
+  const val = key.split('.').reduce((o, k) => o?.[k], strings);
+  if (!val) return key;
+  return String(val).replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : `{${k}}`);
+}
+const CAT_KEYS = { "ALL GAMES": "cat.all_games", "OTHERS": "cat.others", "PHYSICAL": "cat.physical", "EMULATION": "cat.emulation", "APPS": "cat.apps", "PLAYABLE": "cat.playable", "WANT TO PLAY": "cat.want", "FAVS": "cat.favs" };
+function tCat(name) { const k = CAT_KEYS[name]; return k ? t(k) : name; }
+
+function getLocalizedDescription(game) {
+  if (game.Description_i18n) {
+    try { const d = JSON.parse(game.Description_i18n); return d[currentLang] || d['en'] || game.Description || ''; } catch(e) {}
+  }
+  return game.Description || '';
+}
+
+function applyI18nToDOM() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { const v = t(el.getAttribute('data-i18n')); if (v) el.textContent = v; });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { const v = t(el.getAttribute('data-i18n-html')); if (v) el.innerHTML = v; });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { const v = t(el.getAttribute('data-i18n-ph')); if (v) el.placeholder = v; });
+}
+
 let gameState = 'SPLASH';
 let allGames = [], filteredGames = [];
 let currentCategoryIndex = 0, currentGameIndex = 0, currentOverlayIndex = 0, currentSearchIndex = 0;
@@ -116,19 +139,19 @@ function getMappedBtn(logicalBtn) {
   return getBtn(iconName);
 }
 function renderHardwareIcons() {
-  const startF = document.getElementById('start-footer'); if (startF) startF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')} Navigate &nbsp;&nbsp;&nbsp; ${getMappedBtn('SOUTH')} Select &nbsp;&nbsp;&nbsp; ${getMappedBtn('START')} Menu`;
-  const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} Navigate &nbsp;&nbsp; ${getBtn('dpad_left')}${getBtn('dpad_right')} Page &nbsp;&nbsp; ${getMappedBtn('SOUTH')} Play &nbsp;&nbsp; ${getMappedBtn('EAST')} Back &nbsp;&nbsp; ${getMappedBtn('WEST')} Media &nbsp;&nbsp; ${getMappedBtn('NORTH')} Search &nbsp;&nbsp; ${getMappedBtn('SELECT')} Options &nbsp;&nbsp; ${getBtn('L3')}${getBtn('R3')} Music`;
-  const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = `Press ${getMappedBtn('WEST')} for Trailer`;
+  const startF = document.getElementById('start-footer'); if (startF) startF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')} ${t('footer.navigate')} &nbsp;&nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.select')} &nbsp;&nbsp;&nbsp; ${getMappedBtn('START')} ${t('footer.menu')}`;
+  const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} ${t('footer.navigate')} &nbsp;&nbsp; ${getBtn('dpad_left')}${getBtn('dpad_right')} ${t('footer.page')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.play')} &nbsp;&nbsp; ${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('WEST')} ${t('footer.media')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')} &nbsp;&nbsp; ${getBtn('L3')}${getBtn('R3')} ${t('footer.music')}`;
+  const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = t('footer.trailer', {btn: getMappedBtn('WEST')});
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = getMappedBtn('SOUTH'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = getMappedBtn('NORTH'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = getMappedBtn('WEST');
-  const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} Navigate &nbsp;&nbsp; ${getMappedBtn('SOUTH')} Play &nbsp;&nbsp; ${getMappedBtn('EAST')} Back &nbsp;&nbsp; ${getMappedBtn('NORTH')} Search &nbsp;&nbsp; ${getMappedBtn('WEST')} Fullscreen &nbsp;&nbsp; ${getMappedBtn('SELECT')} Options`;
+  const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} ${t('footer.navigate')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.play')} &nbsp;&nbsp; ${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('WEST')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
 }
 function renderFootersForKeyboard() {
   const k = getKey;
-  const startF = document.getElementById('start-footer'); if (startF) startF.innerHTML = `${k('↑')}${k('↓')} Navigate &nbsp;&nbsp;&nbsp; ${k('Enter')} Select &nbsp;&nbsp;&nbsp; ${k('M')} Menu`;
-  const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('←')}${k('→')} Category &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('X')} Media &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('O')} Options &nbsp;&nbsp; ${k('M')} Menu &nbsp;&nbsp; ${k('[')}${k(']')} Music`;
-  const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = `Press ${k('X')} for Trailer`;
+  const startF = document.getElementById('start-footer'); if (startF) startF.innerHTML = `${k('↑')}${k('↓')} ${t('footer.navigate')} &nbsp;&nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp;&nbsp; ${k('M')} ${t('footer.menu')}`;
+  const mainF = document.getElementById('main-footer'); if (mainF) mainF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('←')}${k('→')} ${t('footer.category')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('X')} ${t('footer.media')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')} &nbsp;&nbsp; ${k('M')} ${t('footer.menu')} &nbsp;&nbsp; ${k('[')}${k(']')} ${t('footer.music')}`;
+  const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = t('footer.trailer', {btn: k('X')});
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = k('Enter'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = k('Y'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = k('X');
-  const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} Navigate &nbsp;&nbsp; ${k('Enter')} Play &nbsp;&nbsp; ${k('Esc')} Back &nbsp;&nbsp; ${k('Y')} Search &nbsp;&nbsp; ${k('X')} Fullscreen &nbsp;&nbsp; ${k('O')} Options`;
+  const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('X')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
 }
 function updateJbFsHints() {
   const hint = document.getElementById('jb-fs-controls-hint'); if (!hint) return;
@@ -136,15 +159,15 @@ function updateJbFsHints() {
   const rows = Array.from(popup.children);
   const k = getKey;
   if (usingKeyboard) {
-    hint.innerHTML = `${k('Y')} Controls`;
-    if (rows[1]) rows[1].innerHTML = `${k('Enter')} Play / Pause`;
-    if (rows[2]) rows[2].innerHTML = `${k('[')} / ${k(']')} Prev / Next Track`;
-    if (rows[3]) rows[3].innerHTML = `${k('X')} / ${k('Esc')} Exit Fullscreen`;
+    hint.innerHTML = `${k('Y')} ${t('jb_fs.controls')}`;
+    if (rows[1]) rows[1].innerHTML = `${k('Enter')} ${t('jb_fs.play_pause')}`;
+    if (rows[2]) rows[2].innerHTML = `${k('[')} / ${k(']')} ${t('jb_fs.prev_next')}`;
+    if (rows[3]) rows[3].innerHTML = `${k('X')} / ${k('Esc')} ${t('jb_fs.exit')}`;
   } else {
-    hint.innerHTML = `${getMappedBtn('NORTH')} Controls`;
-    if (rows[1]) rows[1].innerHTML = `${getMappedBtn('SOUTH')} Play / Pause`;
-    if (rows[2]) rows[2].innerHTML = `${getBtn('L3')} / ${getBtn('R3')} Prev / Next Track`;
-    if (rows[3]) rows[3].innerHTML = `${getMappedBtn('WEST')} / ${getMappedBtn('EAST')} Exit Fullscreen`;
+    hint.innerHTML = `${getMappedBtn('NORTH')} ${t('jb_fs.controls')}`;
+    if (rows[1]) rows[1].innerHTML = `${getMappedBtn('SOUTH')} ${t('jb_fs.play_pause')}`;
+    if (rows[2]) rows[2].innerHTML = `${getBtn('L3')} / ${getBtn('R3')} ${t('jb_fs.prev_next')}`;
+    if (rows[3]) rows[3].innerHTML = `${getMappedBtn('WEST')} / ${getMappedBtn('EAST')} ${t('jb_fs.exit')}`;
   }
 }
 function setInputMethod(keyboard) {
@@ -247,12 +270,15 @@ function handleSSAction(action) {
 function setDebug(msg, show = true) { const dbg = document.getElementById('media-debug'); if(dbg){ dbg.innerText = msg; dbg.style.display = show ? "block" : "none"; } }
 
 async function boot() {
+  currentLang = await window.api.getSetting('language') || 'en';
+  strings = await window.api.getStrings(currentLang);
+  applyI18nToDOM();
   updateAppScale(); await initAudio(); applyTheme(activeTheme); renderHardwareIcons();
   const recSetting = await window.api.getSetting('recent_games_count'); if (recSetting !== null) { recentGamesCount = parseInt(recSetting, 10); }
   const res = await window.api.getGames(); allGames = (res.games || []).filter(g => g.Game && String(g.Game).trim() !== "");
   for (let g of allGames) { if (g.Screenshot && String(g.Screenshot).trim() !== "") { let paths = String(g.Screenshot).split('|').filter(s => s.trim() !== ""); paths.forEach(p => availableScreenshots.push({ path: p, game: g })); } }
   let prog = 0; const bar = document.getElementById('splash-bar'); const txt = document.getElementById('splash-text');
-  const l = setInterval(() => { prog += 2; bar.style.width = `${prog}%`; if (prog === 30) txt.innerText = "GRINDING..."; if (prog === 60) txt.innerText = "BREWING..."; if (prog >= 100) { clearInterval(l); document.querySelector('.splash-logo').classList.add('boot-anim'); setTimeout(() => { hasBooted = true; transitionToStart(); applyBgmMode(); resetIdleTimer(); }, 800); } }, 30);
+  const l = setInterval(() => { prog += 2; bar.style.width = `${prog}%`; if (prog === 30) txt.innerText = t('status.grinding'); if (prog === 60) txt.innerText = t('status.brewing'); if (prog >= 100) { clearInterval(l); document.querySelector('.splash-logo').classList.add('boot-anim'); setTimeout(() => { hasBooted = true; transitionToStart(); applyBgmMode(); resetIdleTimer(); }, 800); } }, 30);
   requestAnimationFrame(pollGamepad); window.api.onDownloadProgress(updateDownloadProgressBar); window.api.onScrapeProgress(updateScrapeProgressBar);
 }
 
@@ -267,8 +293,12 @@ function enterSleepMode(game) {
   if (game.CoverArt && game.CoverArt.trim() !== "") { sleepCover.src = convertSafePath(game.CoverArt); sleepCover.style.display = 'block'; } else { sleepCover.style.display = 'none'; }
   sleepTitle.innerText = game.Game;
   let instructionText = audioCfg.wakeMethod || "START + SELECT";
-  if (instructionText.includes("HOLD")) instructionText = `Hold [${instructionText.replace(" (HOLD 2 SEC)", "")}] for 2 Seconds`; else instructionText = `Press [${instructionText}]`;
-  sleepInst.innerText = `${instructionText} to return to CREMA`;
+  if (instructionText.includes("HOLD")) {
+    const method = instructionText.replace(" (HOLD 2 SEC)", "");
+    sleepInst.innerText = t('sleep.hold_return', {method});
+  } else {
+    sleepInst.innerText = t('sleep.press_return', {method: instructionText});
+  }
   sleepScreen.classList.remove('hidden');
 
   window.api.updateLastPlayed(game.Game).then(() => { refreshDatabase(); });
@@ -399,7 +429,7 @@ function handleInput(action) {
   }
   else if (gameState === 'MAIN') {
     if (filteredGames.length === 0 && action !== 'BACK' && action !== 'LEFT' && action !== 'RIGHT' && action !== 'START' && action !== 'Y_BUTTON') return;
-    if (action === 'DOWN') { currentGameIndex = (currentGameIndex + 1) % filteredGames.length; playSound(sfxNav); updateGameSelection(); } else if (action === 'UP') { currentGameIndex = (currentGameIndex - 1 + filteredGames.length) % filteredGames.length; playSound(sfxNav); updateGameSelection(); } else if (action === 'L1' || action === 'R1') { jumpPages(action); } else if (action === 'L2') { currentGameIndex = 0; playSound(sfxNav); updateGameSelection(); } else if (action === 'R2') { currentGameIndex = Math.max(0, filteredGames.length - 1); playSound(sfxNav); updateGameSelection(); } else if (action === 'LEFT') { currentCategoryIndex = (currentCategoryIndex - 1 + categories.length) % categories.length; playSound(sfxNav); transitionToMain(); } else if (action === 'RIGHT') { currentCategoryIndex = (currentCategoryIndex + 1) % categories.length; playSound(sfxNav); transitionToMain(); } else if (action === 'BACK') { playSound(sfxBack); transitionToStart(); } else if (action === 'START') { openOverlay("MAIN_MENU"); } else if (action === 'SELECT_BTN') { openOverlay("GAME_MENU"); } else if (action === 'Y_BUTTON') { openOSK('SEARCH', 'GLOBAL SEARCH', searchQuery); }
+    if (action === 'DOWN') { currentGameIndex = (currentGameIndex + 1) % filteredGames.length; playSound(sfxNav); updateGameSelection(); } else if (action === 'UP') { currentGameIndex = (currentGameIndex - 1 + filteredGames.length) % filteredGames.length; playSound(sfxNav); updateGameSelection(); } else if (action === 'L1' || action === 'R1') { jumpPages(action); } else if (action === 'L2') { currentGameIndex = 0; playSound(sfxNav); updateGameSelection(); } else if (action === 'R2') { currentGameIndex = Math.max(0, filteredGames.length - 1); playSound(sfxNav); updateGameSelection(); } else if (action === 'LEFT') { currentCategoryIndex = (currentCategoryIndex - 1 + categories.length) % categories.length; playSound(sfxNav); transitionToMain(); } else if (action === 'RIGHT') { currentCategoryIndex = (currentCategoryIndex + 1) % categories.length; playSound(sfxNav); transitionToMain(); } else if (action === 'BACK') { playSound(sfxBack); transitionToStart(); } else if (action === 'START') { openOverlay("MAIN_MENU"); } else if (action === 'SELECT_BTN') { openOverlay("GAME_MENU"); } else if (action === 'Y_BUTTON') { openOSK('SEARCH', t('html.osk_search_title'), searchQuery); }
     else if (action === 'X_BUTTON') {
       if (gameHasTrailer) { playSound(sfxSelect); mediaSwapped = !mediaSwapped; const md = document.getElementById('media-container'), mn = document.getElementById('mini-dock'), v = document.getElementById('video-player'), s = document.getElementById('screenshot-player'), wp = !v.paused; if (mediaSwapped) { md.appendChild(s); mn.appendChild(v); } else { md.appendChild(v); mn.appendChild(s); } if (wp) v.play().catch(e=>{}); }
       else openSearchOverlay();
@@ -408,10 +438,10 @@ function handleInput(action) {
   }
   else if (gameState === 'OSK') { handleOSKInput(action); }
   else if (gameState === 'JUKEBOX' || gameState === 'JUKEBOX_OVERLAY') { handleJukeboxInput(action); }
-  else if (['OVERLAY', 'THEME_CATS', 'THEMES', 'MUSIC_STYLE', 'GAME_SCRAPE_MENU', 'CONFIRM_SCRAPE', 'SCRAPE_RESULT', 'GAMEPAD_MENU', 'WAKE_METHOD_MENU', 'START_SCREEN_MENU'].includes(gameState)) {
+  else if (['OVERLAY', 'THEME_CATS', 'THEMES', 'MUSIC_STYLE', 'GAME_SCRAPE_MENU', 'CONFIRM_SCRAPE', 'SCRAPE_RESULT', 'GAMEPAD_MENU', 'WAKE_METHOD_MENU', 'START_SCREEN_MENU', 'LANGUAGE_MENU'].includes(gameState)) {
     if (action === 'DOWN') { currentOverlayIndex = nextOverlayIndex(currentOverlayIndex, 1); playSound(sfxNav); updateOverlaySelection(); } else if (action === 'UP') { currentOverlayIndex = nextOverlayIndex(currentOverlayIndex, -1); playSound(sfxNav); updateOverlaySelection(); }
     else if (action === 'BACK') {
-      if (gameState === 'THEMES') openThemeCategoryMenu(); else if (gameState === 'THEME_CATS') openOverlay("MAIN_MENU"); else if (gameState === 'MUSIC_STYLE') openSoundOverlay(); else if (gameState === 'GAMEPAD_MENU' || gameState === 'WAKE_METHOD_MENU') openOverlay("MAIN_MENU"); else if (gameState === 'START_SCREEN_MENU') openOverlay("MAIN_MENU");
+      if (gameState === 'THEMES') openThemeCategoryMenu(); else if (gameState === 'THEME_CATS') openOverlay("MAIN_MENU"); else if (gameState === 'MUSIC_STYLE') openSoundOverlay(); else if (gameState === 'GAMEPAD_MENU' || gameState === 'WAKE_METHOD_MENU') openOverlay("MAIN_MENU"); else if (gameState === 'START_SCREEN_MENU') openOverlay("MAIN_MENU"); else if (gameState === 'LANGUAGE_MENU') openOverlay("MAIN_MENU");
       else if (gameState === 'GAME_SCRAPE_MENU' || gameState === 'SCRAPE_RESULT') openOverlay("GAME_MENU");
       else if (gameState === 'CONFIRM_SCRAPE') openGameScrapeMenu();
       else if (currentOverlayType === 'STEAM_MATCH_SELECTOR' || currentOverlayType === 'STEAM_SEARCH_FAILED') { closeOverlay(); openGameScrapeMenu(); }
@@ -624,25 +654,23 @@ function openHistoryMenu() {
   currentOverlayType = 'HISTORY_MENU';
   playSound(sfxSelect);
 
-  const opts = ["OFF", "5 GAMES", "10 GAMES", "15 GAMES", "20 GAMES"];
-  const mapped = opts.map(o => {
-    let val = o === "OFF" ? 0 : parseInt(o.split(' ')[0], 10);
-    return val === recentGamesCount ? "★ " + o : o;
-  });
+  const counts = [0, 5, 10, 15, 20];
+  const labels = counts.map(n => n === 0 ? 'OFF' : `${n} ${t('history.games')}`);
+  const mapped = labels.map((label, i) => counts[i] === recentGamesCount ? '★ ' + label : label);
 
-  mapped.push("CLEAR GAMING HISTORY", "BACK TO MENU");
-  renderGenericOverlay("GAMING HISTORY", mapped);
+  mapped.push(t('history.clear'), t('common.back_to_menu'));
+  renderGenericOverlay(t('history.title'), mapped);
 }
 
 async function openOverlay(type) {
   if (gameState === 'START' || gameState === 'MAIN') { previousGameState = gameState; }
   gameState = 'OVERLAY'; currentOverlayType = type; setBlur(true);
 
-  if (type === "MAIN_MENU") { renderGenericOverlay("SYSTEM MENU", ["§AUDIO", "JUKEBOX MODE", "SOUND SETTINGS", "§APPEARANCE", "COLOR SCHEME", "START SCREEN", "SCREENSAVER SETTINGS", "§CONTROLS", "SHOW KEYBINDINGS", "GAMEPAD ICONS", "WAKE UP METHOD", "§LIBRARY", "BATCH SCRAPE", "GAMING HISTORY", "§SYSTEM", "ABOUT CREMA", "QUIT CREMA", "CLOSE MENU"]); }
+  if (type === "MAIN_MENU") { renderGenericOverlay(t('menu.system'), [`§${t('section.audio')}`, t('menu.jukebox_mode'), t('menu.sound_settings'), `§${t('section.appearance')}`, t('menu.color_scheme'), t('menu.start_screen'), t('menu.screensaver'), `§${t('section.controls')}`, t('menu.keybindings'), t('menu.gamepad_icons'), t('menu.wake_method'), `§${t('section.library')}`, t('menu.batch_scrape'), t('menu.history'), `§${t('section.system')}`, t('menu.about'), t('menu.language'), t('menu.quit'), t('common.close_menu')]); }
   else if (type === "GAME_MENU") {
     const game = filteredGames[currentGameIndex]; const localUrl = await window.api.checkLocalTrailer(game.Game);
-    const favStr = game.FAV === "YES" ? "REMOVE FAV" : "ADD FAV"; const wantStr = game.WANT_TO_PLAY === "YES" ? "REMOVE WANT TO PLAY" : "ADD WANT TO PLAY"; const cmdStr = (game.LaunchCommand && game.LaunchCommand.trim() !== "") ? "EDIT LAUNCH COMMAND" : "ADD LAUNCH COMMAND"; const trStr = localUrl ? "DELETE TRAILER" : "DOWNLOAD TRAILER";
-    renderGenericOverlay("GAME OPTIONS", [trStr, favStr, wantStr, cmdStr, "RENAME GAME", "SCRAPING ENGINE", "CLOSE MENU"]);
+    const favStr = game.FAV === "YES" ? t('game_menu.remove_fav') : t('game_menu.add_fav'); const wantStr = game.WANT_TO_PLAY === "YES" ? t('game_menu.remove_want') : t('game_menu.add_want'); const cmdStr = (game.LaunchCommand && game.LaunchCommand.trim() !== "") ? t('game_menu.edit_launch') : t('game_menu.add_launch'); const trStr = localUrl ? t('game_menu.delete_trailer') : t('game_menu.download_trailer');
+    renderGenericOverlay(t('menu.game_options'), [trStr, favStr, wantStr, cmdStr, t('game_menu.rename'), t('game_menu.scraping'), t('common.close_menu')]);
   }
 }
 
@@ -656,10 +684,20 @@ function closeOverlay() { playSound(sfxBack); document.getElementById('overlay-b
 function executeOverlayAction() {
   playSound(sfxSelect); const action = overlayItems[currentOverlayIndex];
 
+  if (gameState === 'LANGUAGE_MENU') {
+    const langMap = { [t('language.en')]: 'en', [t('language.pt_BR')]: 'pt_BR' };
+    if (action === t('common.back_to_menu')) { openOverlay("MAIN_MENU"); return; }
+    const lang = langMap[action];
+    if (lang) {
+      window.api.setSetting('language', lang).then(() => window.location.reload());
+    }
+    return;
+  }
+
   if (gameState === 'START_SCREEN_MENU') {
-    const modeMap = { 'LIST MENU': 'STATIC', 'HORIZONTAL CAROUSEL': 'CAROUSEL', 'GRID': 'GRID' };
+    const modeMap = { [t('start_screen.list')]: 'STATIC', [t('start_screen.carousel')]: 'CAROUSEL', [t('start_screen.grid')]: 'GRID' };
     const raw = String(action).replace('★ ', '');
-    if (raw === 'BACK TO MENU') { openOverlay("MAIN_MENU"); return; }
+    if (raw === t('common.back_to_menu')) { openOverlay("MAIN_MENU"); return; }
     if (modeMap[raw]) {
       audioCfg.startScreenMode = modeMap[raw];
       window.api.saveAudioConfig(audioCfg);
@@ -676,7 +714,7 @@ function executeOverlayAction() {
   }
 
   if (currentOverlayType === 'CONFIRM_QUIT') {
-    if (action === "YES, QUIT") { window.api.quitApp(); }
+    if (action === t('confirm.yes_quit')) { window.api.quitApp(); }
     else { openOverlay("MAIN_MENU"); }
     return;
   }
@@ -687,30 +725,30 @@ function executeOverlayAction() {
   }
 
   if (currentOverlayType === 'STEAM_MATCH_SELECTOR') {
-    if (action === "CANCEL SEARCH") { openGameScrapeMenu(); }
+    if (action === t('common.cancel_search')) { openGameScrapeMenu(); }
     else { const match = steamSearchResults[currentOverlayIndex]; proceedWithScrape(match.id, match.name); }
     return;
   }
 
   if (currentOverlayType === 'STEAM_SEARCH_FAILED') {
-    if (action === "REFINE SEARCH") { document.getElementById('overlay-backdrop').classList.add('hidden'); openOSK('REFINE_SEARCH', 'REFINE SEARCH TERM', filteredGames[currentGameIndex].Game); }
+    if (action === t('dialog.refine_search')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openOSK('REFINE_SEARCH', t('osk.refine_search'), filteredGames[currentGameIndex].Game); }
     else { openGameScrapeMenu(); }
     return;
   }
 
   if (currentOverlayType === 'HISTORY_MENU') {
-    if (action === "BACK TO MENU") {
+    if (action === t('common.back_to_menu')) {
       openOverlay("MAIN_MENU");
-    } else if (action === "CLEAR GAMING HISTORY") {
+    } else if (action === t('history.clear')) {
       window.api.clearHistory().then(() => {
         refreshDatabase().then(() => {
-          renderGenericOverlay("ACTION COMPLETED", ["✅ HISTORY CLEARED", "BACK TO MENU"]);
+          renderGenericOverlay(t('dialog.action_completed'), [t('status.history_cleared'), t('common.back_to_menu')]);
           currentOverlayType = 'HISTORY_CLEARED';
         });
       });
     } else {
-      let raw = action.replace("★ ", "");
-      let val = raw === "OFF" ? 0 : parseInt(raw.split(' ')[0], 10);
+      let raw = action.replace('★ ', '');
+      let val = isNaN(parseInt(raw.split(' ')[0], 10)) ? 0 : parseInt(raw.split(' ')[0], 10);
       recentGamesCount = val;
       window.api.setSetting('recent_games_count', val);
       applyLiveFilters();
@@ -725,36 +763,37 @@ function executeOverlayAction() {
   }
 
   if (gameState === 'OVERLAY') {
-    if (action === "JUKEBOX MODE") { document.getElementById('overlay-backdrop').classList.add('hidden'); openJukebox(); }
-    else if (action === "QUIT CREMA") { currentOverlayType = 'CONFIRM_QUIT'; renderGenericOverlay("EXIT CREMA?", ["YES, QUIT", "CANCEL"]); }
-    else if (action === "ADD FAV" || action === "REMOVE FAV") { const val = action === "ADD FAV" ? "YES" : "NO"; filteredGames[currentGameIndex].FAV = val; window.api.saveDbField({game: filteredGames[currentGameIndex].Game, field: 'FAV', value: val}); refreshDatabase(); closeOverlay(); }
-    else if (action === "ADD WANT TO PLAY" || action === "REMOVE WANT TO PLAY") { const val = action === "ADD WANT TO PLAY" ? "YES" : "NO"; filteredGames[currentGameIndex].WANT_TO_PLAY = val; window.api.saveDbField({game: filteredGames[currentGameIndex].Game, field: 'WANT_TO_PLAY', value: val}); refreshDatabase(); closeOverlay(); }
-    else if (action === "ADD LAUNCH COMMAND" || action === "EDIT LAUNCH COMMAND") { document.getElementById('overlay-backdrop').classList.add('hidden'); openOSK('LAUNCH_CMD', 'LAUNCH COMMAND', filteredGames[currentGameIndex].LaunchCommand || ""); }
-    else if (action === "RENAME GAME") { document.getElementById('overlay-backdrop').classList.add('hidden'); openOSK('RENAME_GAME', 'RENAME GAME', filteredGames[currentGameIndex].Game); }
-    else if (action === "SCRAPING ENGINE") { document.getElementById('overlay-backdrop').classList.add('hidden'); openGameScrapeMenu(); }
-    else if (action === "DOWNLOAD TRAILER") openSearchOverlay();
-    else if (action === "DELETE TRAILER") { clearMediaLoaders(); window.api.deleteTrailer(filteredGames[currentGameIndex].Game).then(() => { setDebug("🗑️ Trailer Deleted", true); refreshDatabase(); closeOverlay(); }); }
-    else if (action === "SOUND SETTINGS") { document.getElementById('overlay-backdrop').classList.add('hidden'); openSoundOverlay(); }
-    else if (action === "BATCH SCRAPE") { document.getElementById('overlay-backdrop').classList.add('hidden'); openScrapeOverlay(); }
-    else if (action === "SHOW KEYBINDINGS") { document.getElementById('overlay-backdrop').classList.add('hidden'); openKeybindingsOverlay(); }
-    else if (action === "GAMEPAD ICONS") { document.getElementById('overlay-backdrop').classList.add('hidden'); openGamepadMenu(); }
-    else if (action === "WAKE UP METHOD") { document.getElementById('overlay-backdrop').classList.add('hidden'); openWakeMethodMenu(); }
-    else if (action === "COLOR SCHEME") { document.getElementById('overlay-backdrop').classList.add('hidden'); openThemeCategoryMenu(); }
-    else if (action === "SCREENSAVER SETTINGS") { document.getElementById('overlay-backdrop').classList.add('hidden'); openScreensaverMenu(); }
-    else if (action === "GAMING HISTORY") { document.getElementById('overlay-backdrop').classList.add('hidden'); openHistoryMenu(); }
-    else if (action === "START SCREEN") { document.getElementById('overlay-backdrop').classList.add('hidden'); openStartScreenMenu(); }
-    else if (action === "ABOUT CREMA") {
+    if (action === t('menu.jukebox_mode')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openJukebox(); }
+    else if (action === t('menu.quit')) { currentOverlayType = 'CONFIRM_QUIT'; renderGenericOverlay(t('confirm.quit_title'), [t('confirm.yes_quit'), t('common.cancel')]); }
+    else if (action === t('game_menu.add_fav') || action === t('game_menu.remove_fav')) { const val = action === t('game_menu.add_fav') ? "YES" : "NO"; filteredGames[currentGameIndex].FAV = val; window.api.saveDbField({game: filteredGames[currentGameIndex].Game, field: 'FAV', value: val}); refreshDatabase(); closeOverlay(); }
+    else if (action === t('game_menu.add_want') || action === t('game_menu.remove_want')) { const val = action === t('game_menu.add_want') ? "YES" : "NO"; filteredGames[currentGameIndex].WANT_TO_PLAY = val; window.api.saveDbField({game: filteredGames[currentGameIndex].Game, field: 'WANT_TO_PLAY', value: val}); refreshDatabase(); closeOverlay(); }
+    else if (action === t('game_menu.add_launch') || action === t('game_menu.edit_launch')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openOSK('LAUNCH_CMD', t('osk.launch_command'), filteredGames[currentGameIndex].LaunchCommand || ""); }
+    else if (action === t('game_menu.rename')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openOSK('RENAME_GAME', t('osk.rename_game'), filteredGames[currentGameIndex].Game); }
+    else if (action === t('game_menu.scraping')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openGameScrapeMenu(); }
+    else if (action === t('game_menu.download_trailer')) openSearchOverlay();
+    else if (action === t('game_menu.delete_trailer')) { clearMediaLoaders(); window.api.deleteTrailer(filteredGames[currentGameIndex].Game).then(() => { setDebug("🗑️ Trailer Deleted", true); refreshDatabase(); closeOverlay(); }); }
+    else if (action === t('menu.sound_settings')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openSoundOverlay(); }
+    else if (action === t('menu.batch_scrape')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openScrapeOverlay(); }
+    else if (action === t('menu.keybindings')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openKeybindingsOverlay(); }
+    else if (action === t('menu.gamepad_icons')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openGamepadMenu(); }
+    else if (action === t('menu.wake_method')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openWakeMethodMenu(); }
+    else if (action === t('menu.color_scheme')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openThemeCategoryMenu(); }
+    else if (action === t('menu.screensaver')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openScreensaverMenu(); }
+    else if (action === t('menu.history')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openHistoryMenu(); }
+    else if (action === t('menu.start_screen')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openStartScreenMenu(); }
+    else if (action === t('menu.language')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openLanguageMenu(); }
+    else if (action === t('menu.about')) {
       currentOverlayType = 'ABOUT_CREMA';
-      renderGenericOverlay("ABOUT CREMA", ["BACK TO MENU"], "<span style='color: var(--accent); font-size: 26px; font-weight: bold; letter-spacing: 2px;'>CAFE NEUROTICO: CREMA</span><br><span style='color: var(--text_main); font-size: 16px;'>Version 1.0.0</span><br><br><span style='color: var(--text_sec); font-size: 18px; line-height: 1.6; display: inline-block; max-width: 750px; text-align: center;'><i style='color: var(--text_dim);'>\"Crema is the reddish-brown, frothy foam layer that sits on top of a freshly brewed espresso. It consists of water, coffee oils, and pressurized CO2 bubbles created during high-pressure extraction. It signifies freshness and proper pressure.\"</i><br><br><strong>CNGM and CREMA</strong> work together to satisfy our gaming needs.<br><br><strong>CAFE NEUROTICO GAME MANAGER</strong> is the desktop app: detail-focused, neurotic about your library, handling all the heavy lifting with automatic and manual importing.<br><br><strong>CREMA</strong> is the sweet foam on top. It is its fullscreen companion: laidback, easygoing, and focused purely on fun. A true connoisseur of good gaming and good music. Grab a controller and enjoy.<br><br>Proudly designed in Brazil 🇧🇷 by J.R.A.<br>shampooisalie@gmail.com</span>");
+      renderGenericOverlay(t('about.title'), [t('common.back_to_menu')], t('about.content'));
     }
-    else if (action === "CLOSE MENU") closeOverlay();
+    else if (action === t('common.close_menu')) closeOverlay();
     else closeOverlay();
   }
-  else if (gameState === 'THEME_CATS') { if (action === "BACK TO MENU") { openOverlay("MAIN_MENU"); } else { openThemeMenu(action); } }
-  else if (gameState === 'THEMES') { if (action === "BACK") { openThemeCategoryMenu(); } else if (action) { let raw = String(action).replace("★ ", ""); audioCfg.theme = raw; window.api.saveAudioConfig(audioCfg); applyTheme(raw); openThemeCategoryMenu(); } }
-  else if (gameState === 'MUSIC_STYLE') { if (action === "BACK") { openSoundOverlay(); } else if (action) { let raw = String(action).replace("★ ", ""); audioCfg.bgm_mode = raw; window.api.saveAudioConfig(audioCfg); applyBgmMode(); openSoundOverlay(); } }
+  else if (gameState === 'THEME_CATS') { if (action === t('common.back_to_menu')) { openOverlay("MAIN_MENU"); } else { openThemeMenu(action); } }
+  else if (gameState === 'THEMES') { if (action === t('common.back')) { openThemeCategoryMenu(); } else if (action) { let raw = String(action).replace("★ ", ""); audioCfg.theme = raw; window.api.saveAudioConfig(audioCfg); applyTheme(raw); openThemeCategoryMenu(); } }
+  else if (gameState === 'MUSIC_STYLE') { if (action === t('common.back')) { openSoundOverlay(); } else if (action) { let raw = String(action).replace("★ ", ""); audioCfg.bgm_mode = raw; window.api.saveAudioConfig(audioCfg); applyBgmMode(); openSoundOverlay(); } }
   else if (gameState === 'GAMEPAD_MENU') {
-    if (action === "BACK TO MENU") { openOverlay("MAIN_MENU"); }
+    if (action === t('common.back_to_menu')) { openOverlay("MAIN_MENU"); }
     else if (action) {
       let raw = String(action).replace("★ ", "");
       if (raw.startsWith("XBOX")) audioCfg.gamepadLayout = "XBOX";
@@ -766,7 +805,7 @@ function executeOverlayAction() {
     }
   }
   else if (gameState === 'WAKE_METHOD_MENU') {
-    if (action === "BACK TO MENU") { openOverlay("MAIN_MENU"); }
+    if (action === t('common.back_to_menu')) { openOverlay("MAIN_MENU"); }
     else if (action) {
       let raw = String(action).replace("★ ", "");
       audioCfg.wakeMethod = raw;
@@ -781,11 +820,11 @@ function openKeybindingsOverlay() {
   const bd = document.getElementById('keybindings-backdrop');
   const gp = document.getElementById('gb-gamepad');
   if (gp) {
-    gp.innerHTML = `${getMappedBtn('SOUTH')} - Select / Launch<br>${getMappedBtn('EAST')} - Back<br>${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} - Navigate List<br>${getBtn('dpad_left')}${getBtn('dpad_right')} - Change Category<br>${getMappedBtn('SELECT')} - Game Options<br>${getMappedBtn('START')} - System Menu<br>${getMappedBtn('WEST')} - Toggle Media / Fullscreen<br>${getMappedBtn('NORTH')} - Search / Controls<br>${getBtn('L3')} - Prev Track / Restart<br>${getBtn('R3')} - Next Track`;
+    gp.innerHTML = `${getMappedBtn('SOUTH')} - ${t('keybindings.gp_select')}<br>${getMappedBtn('EAST')} - ${t('keybindings.gp_back')}<br>${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} - ${t('keybindings.gp_navigate')}<br>${getBtn('dpad_left')}${getBtn('dpad_right')} - ${t('keybindings.gp_category')}<br>${getMappedBtn('SELECT')} - ${t('keybindings.gp_options')}<br>${getMappedBtn('START')} - ${t('keybindings.gp_menu')}<br>${getMappedBtn('WEST')} - ${t('keybindings.gp_media')}<br>${getMappedBtn('NORTH')} - ${t('keybindings.gp_search')}<br>${getBtn('L3')} - ${t('keybindings.gp_prev')}<br>${getBtn('R3')} - ${t('keybindings.gp_next')}`;
   }
   const kb = document.getElementById('gb-keyboard');
   if (kb) {
-    kb.innerHTML = `<strong>[ENTER] / [SPACE]</strong> - Select / Play<br><strong>[ESC] / [BKSP]</strong> - Back<br><strong>[ARROWS]</strong> - Navigate<br><strong>[PG UP] / [PG DN]</strong> - Page Jump<br><strong>[ , ] / [ . ]</strong> - Prev / Next Track<br><strong>[TAB]</strong> - Game Options<br><strong>[M]</strong> - System Menu<br><strong>[X]</strong> - Toggle Media / Fullscreen<br><strong>[Y]</strong> - Global Search`;
+    kb.innerHTML = `<strong>[ENTER] / [SPACE]</strong> - ${t('keybindings.kb_select')}<br><strong>[ESC] / [BKSP]</strong> - ${t('keybindings.kb_back')}<br><strong>[ARROWS]</strong> - ${t('keybindings.kb_navigate')}<br><strong>[PG UP] / [PG DN]</strong> - ${t('keybindings.kb_page')}<br><strong>[ , ] / [ . ]</strong> - ${t('keybindings.kb_prev_next')}<br><strong>[TAB]</strong> - ${t('keybindings.kb_options')}<br><strong>[M]</strong> - ${t('keybindings.kb_menu')}<br><strong>[X]</strong> - ${t('keybindings.kb_media')}<br><strong>[Y]</strong> - ${t('keybindings.kb_search')}`;
   }
   bd.classList.remove('hidden');
 }
@@ -798,69 +837,69 @@ function closeKeybindingsOverlay() {
 
 function openGameScrapeMenu() {
   gameState = 'GAME_SCRAPE_MENU'; playSound(sfxSelect); currentOverlayIndex = 0; document.getElementById('overlay-backdrop').classList.remove('hidden');
-  renderGenericOverlay("SCRAPING OPTIONS", ["SCRAPE ALL (DEFAULT)", "CLEAR ALL SCRAPED ITEMS", "CUSTOM COVER (STEAMGRIDDB)", "SCRAPE COVER (DEFAULT)", "REMOVE COVER", "SCRAPE SCREENSHOTS", "REMOVE SCREENSHOTS", "SCRAPE METADATA", "REMOVE METADATA", "BACK TO GAME OPTIONS"]);
+  renderGenericOverlay(t('scraping.title'), [t('scraping.all'), t('scraping.clear_all'), t('scraping.custom_cover'), t('scraping.cover'), t('scraping.remove_cover'), t('scraping.screenshots'), t('scraping.remove_screenshots'), t('scraping.metadata'), t('scraping.remove_metadata'), t('common.back_to_game_options')]);
 }
 
 async function executeGameScrapeAction() {
   playSound(sfxSelect); const action = overlayItems[currentOverlayIndex]; const game = filteredGames[currentGameIndex];
-  if (action === "BACK TO GAME OPTIONS") { document.getElementById('overlay-backdrop').classList.add('hidden'); openOverlay("GAME_MENU"); }
-  else if (action === "CLEAR ALL SCRAPED ITEMS") {
+  if (action === t('common.back_to_game_options')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openOverlay("GAME_MENU"); }
+  else if (action === t('scraping.clear_all')) {
     const fields = ['CoverArt', 'Screenshot', 'DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'ProtonTier', 'SteamAppID'];
     fields.forEach(f => { game[f] = ""; window.api.saveDbField({game: game.Game, field: f, value: ""}); });
-    await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay("ACTION COMPLETED", ["✅ ALL SCRAPED DATA CLEARED", "BACK TO GAME OPTIONS"]);
+    await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay(t('dialog.action_completed'), [t('status.all_cleared'), t('common.back_to_game_options')]);
   }
-  else if (action === "REMOVE COVER") { game.CoverArt = ""; window.api.saveDbField({game: game.Game, field: 'CoverArt', value: ""}); await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay("ACTION COMPLETED", ["✅ COVER REMOVED", "BACK TO GAME OPTIONS"]); }
-  else if (action === "REMOVE SCREENSHOTS") { game.Screenshot = ""; window.api.saveDbField({game: game.Game, field: 'Screenshot', value: ""}); await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay("ACTION COMPLETED", ["✅ SCREENSHOTS REMOVED", "BACK TO GAME OPTIONS"]); }
-  else if (action === "REMOVE METADATA") { const fields = ['DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'ProtonTier', 'SteamAppID']; fields.forEach(f => { game[f] = ""; window.api.saveDbField({game: game.Game, field: f, value: ""}); }); await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay("ACTION COMPLETED", ["✅ METADATA REMOVED", "BACK TO GAME OPTIONS"]); }
+  else if (action === t('scraping.remove_cover')) { game.CoverArt = ""; window.api.saveDbField({game: game.Game, field: 'CoverArt', value: ""}); await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay(t('dialog.action_completed'), [t('status.cover_removed'), t('common.back_to_game_options')]); }
+  else if (action === t('scraping.remove_screenshots')) { game.Screenshot = ""; window.api.saveDbField({game: game.Game, field: 'Screenshot', value: ""}); await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay(t('dialog.action_completed'), [t('status.screenshots_removed'), t('common.back_to_game_options')]); }
+  else if (action === t('scraping.remove_metadata')) { const fields = ['DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'ProtonTier', 'SteamAppID']; fields.forEach(f => { game[f] = ""; window.api.saveDbField({game: game.Game, field: f, value: ""}); }); await refreshDatabase(); gameState = 'SCRAPE_RESULT'; renderGenericOverlay(t('dialog.action_completed'), [t('status.metadata_removed'), t('common.back_to_game_options')]); }
   else {
-    if (action === "SCRAPE ALL (DEFAULT)") activeScrapeMode = 'ALL';
-    else if (action === "CUSTOM COVER (STEAMGRIDDB)") activeScrapeMode = 'SGDB';
-    else if (action === "SCRAPE COVER (DEFAULT)") activeScrapeMode = 'COVER';
-    else if (action === "SCRAPE SCREENSHOTS") activeScrapeMode = 'SCREENSHOTS';
-    else if (action === "SCRAPE METADATA") activeScrapeMode = 'METADATA';
+    if (action === t('scraping.all')) activeScrapeMode = 'ALL';
+    else if (action === t('scraping.custom_cover')) activeScrapeMode = 'SGDB';
+    else if (action === t('scraping.cover')) activeScrapeMode = 'COVER';
+    else if (action === t('scraping.screenshots')) activeScrapeMode = 'SCREENSHOTS';
+    else if (action === t('scraping.metadata')) activeScrapeMode = 'METADATA';
     document.getElementById('overlay-backdrop').classList.remove('hidden');
     triggerSteamSearch(game.Game);
   }
 }
 
 async function triggerSteamSearch(searchTerm) {
-  document.getElementById('overlay-title').innerText = "SEARCHING...";
-  document.getElementById('overlay-list').innerHTML = "<div class='overlay-item selected' style='color: var(--accent);'>Querying Steam database...</div>";
+  document.getElementById('overlay-title').innerText = t('status.searching');
+  document.getElementById('overlay-list').innerHTML = `<div class='overlay-item selected' style='color: var(--accent);'>${t('status.querying_steam')}</div>`;
 
   steamSearchResults = await window.api.searchSteam(searchTerm);
   if (steamSearchResults.length === 0) {
     currentOverlayType = 'STEAM_SEARCH_FAILED'; gameState = 'OVERLAY';
-    renderGenericOverlay("NO MATCHES FOUND", ["REFINE SEARCH", "BACK TO SCRAPING MENU"]);
+    renderGenericOverlay(t('dialog.no_matches'), [t('dialog.refine_search'), t('common.back_to_scraping')]);
     return;
   }
 
   currentOverlayType = 'STEAM_MATCH_SELECTOR'; gameState = 'OVERLAY';
-  let items = steamSearchResults.map(r => `${r.name} (${r.id})`); items.push("CANCEL SEARCH");
-  renderGenericOverlay("SELECT EXACT MATCH", items);
+  let items = steamSearchResults.map(r => `${r.name} (${r.id})`); items.push(t('common.cancel_search'));
+  renderGenericOverlay(t('dialog.select_match'), items);
 }
 
 function proceedWithScrape(appId, resolvedName) {
   selectedAppId = appId; selectedResolvedName = resolvedName; gameState = 'CONFIRM_SCRAPE';
   let modeText = activeScrapeMode === 'ALL' ? 'ALL DATA' : activeScrapeMode;
-  renderGenericOverlay("CONFIRM ACTION", [`PROCEED: SCRAPE ${modeText}`, "CANCEL"]);
+  renderGenericOverlay(t('confirm.confirm_action'), [t('confirm.proceed_scrape', {mode: modeText}), t('common.cancel')]);
 }
 
 async function executeConfirmScrapeAction() {
   playSound(sfxSelect); const action = overlayItems[currentOverlayIndex];
-  if (action === "CANCEL") { openGameScrapeMenu(); }
+  if (action === t('common.cancel')) { openGameScrapeMenu(); }
   else {
     const game = filteredGames[currentGameIndex];
     if (activeScrapeMode === 'SGDB') {
       document.getElementById('overlay-backdrop').classList.add('hidden');
       const key = await window.api.getSetting('steamgriddb_api');
-      if (!key) { openOSK('SGDB_API', 'ENTER STEAMGRIDDB API KEY', ''); } else { openSgdbOverlay(key, selectedResolvedName, selectedAppId); }
+      if (!key) { openOSK('SGDB_API', t('osk.sgdb_api_key'), ''); } else { openSgdbOverlay(key, selectedResolvedName, selectedAppId); }
     } else {
-      document.getElementById('overlay-title').innerText = "SCRAPING...";
-      document.getElementById('overlay-list').innerHTML = "<div class='overlay-item selected' style='color: var(--accent);'>Contacting API...</div>";
+      document.getElementById('overlay-title').innerText = t('status.searching');
+      document.getElementById('overlay-list').innerHTML = `<div class='overlay-item selected' style='color: var(--accent);'>${t('status.contacting_api')}</div>`;
       const success = await window.api.scrapeSteamData(game.Game, activeScrapeMode, selectedAppId);
       await refreshDatabase(); gameState = 'SCRAPE_RESULT';
       let modeText = activeScrapeMode === 'ALL' ? 'ALL DATA' : activeScrapeMode;
-      renderGenericOverlay("SCRAPING STATUS", [success ? `✅ ${modeText} SUCCESSFULLY SCRAPED` : `❌ NO DATA FOUND OR ERROR`, "BACK TO GAME OPTIONS"]);
+      renderGenericOverlay(t('dialog.scraping_status'), [success ? t('status.scraped_ok', {mode: modeText}) : t('status.no_data'), t('common.back_to_game_options')]);
     }
   }
 }
@@ -868,12 +907,12 @@ async function executeConfirmScrapeAction() {
 async function openSgdbOverlay(apiKey, resolvedName, appId) {
   gameState = 'SGDB_GRID'; sgdbIndex = 0; sgdbResults = [];
   const bd = document.getElementById('sgdb-backdrop'); const stat = document.getElementById('sgdb-status'); const grid = document.getElementById('sgdb-grid');
-  grid.innerHTML = ''; stat.innerText = "Connecting to SteamGridDB..."; bd.classList.remove('hidden');
+  grid.innerHTML = ''; stat.innerText = t('status.connecting_sgdb'); bd.classList.remove('hidden');
   let searchName = resolvedName || selectedResolvedName || filteredGames[currentGameIndex].Game;
   let sAppId = appId || selectedAppId;
   sgdbResults = await window.api.sgdbSearch(searchName, apiKey, sAppId);
-  if (sgdbResults.length === 0) { stat.innerText = "No covers found or invalid API Key."; setTimeout(() => { bd.classList.add('hidden'); gameState = 'SCRAPE_RESULT'; document.getElementById('overlay-backdrop').classList.remove('hidden'); renderGenericOverlay("SEARCH FAILED", ["❌ NO CUSTOM COVERS FOUND", "BACK TO GAME OPTIONS"]); }, 2000); return; }
-  stat.innerText = "Select a Custom Cover:"; renderSgdbGrid();
+  if (sgdbResults.length === 0) { stat.innerText = t('status.no_covers'); setTimeout(() => { bd.classList.add('hidden'); gameState = 'SCRAPE_RESULT'; document.getElementById('overlay-backdrop').classList.remove('hidden'); renderGenericOverlay(t('dialog.search_failed'), [t('status.no_custom_covers'), t('common.back_to_game_options')]); }, 2000); return; }
+  stat.innerText = t('sgdb.select_cover'); renderSgdbGrid();
 }
 
 function renderSgdbGrid() {
@@ -890,14 +929,14 @@ function renderSgdbGrid() {
 }
 
 async function executeSgdbApply() {
-  const bd = document.getElementById('sgdb-backdrop'); const stat = document.getElementById('sgdb-status'); stat.innerText = "Downloading selected cover...";
+  const bd = document.getElementById('sgdb-backdrop'); const stat = document.getElementById('sgdb-status'); stat.innerText = t('sgdb.downloading_cover');
   const success = await window.api.sgdbApply(filteredGames[currentGameIndex].Game, sgdbResults[sgdbIndex].url);
   bd.classList.add('hidden'); await refreshDatabase(); gameState = 'SCRAPE_RESULT'; document.getElementById('overlay-backdrop').classList.remove('hidden');
-  renderGenericOverlay("SCRAPING STATUS", [success ? "✅ CUSTOM COVER APPLIED" : "❌ DOWNLOAD FAILED", "BACK TO GAME OPTIONS"]);
+  renderGenericOverlay(t('dialog.scraping_status'), [success ? t('status.cover_applied') : t('status.download_failed'), t('common.back_to_game_options')]);
 }
 
 function openScreensaverMenu() { gameState = 'SCREENSAVER_MENU'; playSound(sfxSelect); currentOverlayIndex = 0; document.getElementById('overlay-backdrop').classList.remove('hidden'); renderScreensaverMenu(); }
-function renderScreensaverMenu() { const bd = document.getElementById('overlay-backdrop'); const tit = document.getElementById('overlay-title'); const lst = document.getElementById('overlay-list'); lst.innerHTML = ''; tit.innerText = "SCREENSAVER SETTINGS"; overlayItems = [`MODE: ${audioCfg.screensaver}`, `DELAY: < ${audioCfg.screensaverDelay} MIN >`, "VIEW SCREENSAVER NOW", "BACK TO MENU"]; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `ssm-${i}`; lst.appendChild(div); }); document.querySelectorAll('#overlay-backdrop .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`ssm-${currentOverlayIndex}`); if (el) el.classList.add('selected'); }
+function renderScreensaverMenu() { const bd = document.getElementById('overlay-backdrop'); const tit = document.getElementById('overlay-title'); const lst = document.getElementById('overlay-list'); lst.innerHTML = ''; tit.innerText = t('screensaver.title'); overlayItems = [`${t('screensaver.mode_prefix')}: ${audioCfg.screensaver}`, t('screensaver.delay', {n: audioCfg.screensaverDelay}), t('screensaver.view_now'), t('common.back_to_menu')]; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `ssm-${i}`; lst.appendChild(div); }); document.querySelectorAll('#overlay-backdrop .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`ssm-${currentOverlayIndex}`); if (el) el.classList.add('selected'); }
 function handleScreensaverMenuHorizontal(dir) { if (currentOverlayIndex === 1) { let idx = delayOptions.indexOf(audioCfg.screensaverDelay); if (dir === 'RIGHT') idx = Math.min(delayOptions.length - 1, idx + 1); else idx = Math.max(0, idx - 1); audioCfg.screensaverDelay = delayOptions[idx]; window.api.saveAudioConfig(audioCfg); resetIdleTimer(); renderScreensaverMenu(); playSound(sfxNav); } }
 function executeScreensaverMenuAction() {
   playSound(sfxSelect);
@@ -919,41 +958,49 @@ function executeScreensaverMenuAction() {
   }
 }
 
-function openThemeCategoryMenu() { gameState = 'THEME_CATS'; let cats = Object.keys(THEME_CATEGORIES); cats.push("BACK TO MENU"); renderGenericOverlay("THEME CATEGORIES", cats); }
-function openThemeMenu(category) { gameState = 'THEMES'; activeThemeCategory = category; let themes = THEME_CATEGORIES[category].map(t => t === activeTheme ? "★ " + t : t); themes.push("BACK"); renderGenericOverlay(category.toUpperCase(), themes); }
+function openThemeCategoryMenu() { gameState = 'THEME_CATS'; let cats = Object.keys(THEME_CATEGORIES); cats.push(t('common.back_to_menu')); renderGenericOverlay("THEME CATEGORIES", cats); }
+function openThemeMenu(category) { gameState = 'THEMES'; activeThemeCategory = category; let themes = THEME_CATEGORIES[category].map(th => th === activeTheme ? "★ " + th : th); themes.push(t('common.back')); renderGenericOverlay(category.toUpperCase(), themes); }
 function openGamepadMenu() {
   gameState = 'GAMEPAD_MENU';
   let layouts = ["XBOX LAYOUT", "PS LAYOUT", "N LAYOUT"];
   let mapped = layouts.map(l => l.startsWith(audioCfg.gamepadLayout) ? "★ " + l : l);
-  mapped.push("BACK TO MENU");
-  renderGenericOverlay("GAMEPAD ICONS", mapped);
+  mapped.push(t('common.back_to_menu'));
+  renderGenericOverlay(t('gamepad.title'), mapped);
 }
 function openWakeMethodMenu() {
   gameState = 'WAKE_METHOD_MENU';
   let methods = ["START + SELECT", "L1 + R1 + START + SELECT", "L3 + R3", "START + SELECT (HOLD 2 SEC)", "L1 + R1 + START + SELECT (HOLD 2 SEC)", "L3 + R3 (HOLD 2 SEC)"];
   let mapped = methods.map(m => m === audioCfg.wakeMethod ? "★ " + m : m);
-  mapped.push("BACK TO MENU");
-  renderGenericOverlay("WAKE UP METHOD", mapped);
+  mapped.push(t('common.back_to_menu'));
+  renderGenericOverlay(t('wake.title'), mapped);
+}
+function openLanguageMenu() {
+  gameState = 'LANGUAGE_MENU';
+  playSound(sfxSelect);
+  currentOverlayIndex = 0;
+  document.getElementById('overlay-backdrop').classList.remove('hidden');
+  const items = [t('language.en'), t('language.pt_BR'), t('common.back_to_menu')];
+  renderGenericOverlay(t('language.title'), items);
 }
 function openMusicStyleMenu() { document.getElementById('sound-backdrop').classList.add('hidden'); gameState = 'MUSIC_STYLE'; let styles = ["PIANO", "AMBIENT", "JAZZ", "LO-FI", "CUSTOM", "OFF"]; let mapped = styles.map(s => s === audioCfg.bgm_mode ? "★ " + s : s); mapped.push("BACK"); renderGenericOverlay("MUSIC STYLE", mapped, "Default styles composed by Schwarzenegger Belonio (Migfus20)<br>freesound.org/people/Migfus20/"); }
 function openSoundOverlay() { if (document.getElementById('overlay-backdrop')) document.getElementById('overlay-backdrop').classList.add('hidden'); gameState = 'SOUND'; playSound(sfxSelect); currentOverlayIndex = 0; document.getElementById('sound-backdrop').classList.remove('hidden'); renderSoundMenu(); }
-function renderSoundMenu() { const lst = document.getElementById('sound-list'); lst.innerHTML = ''; overlayItems = ["MUSIC STYLE", `BGM: ${audioCfg.bgm ? 'ON' : 'OFF'}`, `SFX: ${audioCfg.sfx ? 'ON' : 'OFF'}`, `BGM VOLUME: < ${Math.round(audioCfg.vol * 100)}% >`, "BACK TO MENU"]; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `snd-${i}`; lst.appendChild(div); }); document.querySelectorAll('#sound-list .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`snd-${currentOverlayIndex}`); if (el) el.classList.add('selected'); }
+function renderSoundMenu() { const lst = document.getElementById('sound-list'); lst.innerHTML = ''; overlayItems = [t('sound.music_style_label'), audioCfg.bgm ? t('sound.bgm_on') : t('sound.bgm_off'), audioCfg.sfx ? t('sound.sfx_on') : t('sound.sfx_off'), t('sound.bgm_vol', {vol: Math.round(audioCfg.vol * 100)}), t('common.back_to_menu')]; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `snd-${i}`; lst.appendChild(div); }); document.querySelectorAll('#sound-list .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`snd-${currentOverlayIndex}`); if (el) el.classList.add('selected'); }
 function handleSoundHorizontal(dir) { if (currentOverlayIndex === 3) { let v = audioCfg.vol; if (dir === 'RIGHT') v = Math.min(1.0, v + 0.05); else v = Math.max(0.0, v - 0.05); audioCfg.vol = v; if (audioCfg.bgm && !isVideoActive()) bgmAudio.volume = v; window.api.saveAudioConfig(audioCfg); renderSoundMenu(); playSound(sfxNav); } }
 function executeSoundAction() { playSound(sfxSelect); if (currentOverlayIndex === 0) { openMusicStyleMenu(); } else if (currentOverlayIndex === 1) { audioCfg.bgm = !audioCfg.bgm; window.api.saveAudioConfig(audioCfg); applyBgmMode(); renderSoundMenu(); } else if (currentOverlayIndex === 2) { audioCfg.sfx = !audioCfg.sfx; window.api.saveAudioConfig(audioCfg); renderSoundMenu(); } else if (currentOverlayIndex === 4) closeSoundOverlay(); }
 function closeSoundOverlay() { playSound(sfxBack); document.getElementById('sound-backdrop').classList.add('hidden'); gameState = previousGameState; if (gameState === 'START' || gameState === 'MAIN') setBlur(false); }
 
-function openScrapeOverlay() { gameState = 'SCRAPE'; playSound(sfxSelect); currentOverlayIndex = 0; setBlur(true); overlayItems = ["START BATCH SCRAPE", "BACK TO MENU"]; const bd = document.getElementById('scrape-backdrop'); const lst = document.getElementById('scrape-list'); lst.innerHTML = ''; document.getElementById('scrape-game').innerText = "Ready to scan database."; document.getElementById('scrape-fill').style.width = "0%"; document.getElementById('scrape-percent').innerText = "0%"; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `scrp-${i}`; lst.appendChild(div); }); bd.classList.remove('hidden'); updateScrapeSelection(); }
+function openScrapeOverlay() { gameState = 'SCRAPE'; playSound(sfxSelect); currentOverlayIndex = 0; setBlur(true); overlayItems = [t('status.start_batch_scrape'), t('common.back_to_menu')]; const bd = document.getElementById('scrape-backdrop'); const lst = document.getElementById('scrape-list'); lst.innerHTML = ''; document.getElementById('scrape-game').innerText = t('status.ready_scan'); document.getElementById('scrape-fill').style.width = "0%"; document.getElementById('scrape-percent').innerText = "0%"; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `scrp-${i}`; lst.appendChild(div); }); bd.classList.remove('hidden'); updateScrapeSelection(); }
 function updateScrapeSelection() { document.querySelectorAll('#scrape-list .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`scrp-${currentOverlayIndex}`); if (el) el.classList.add('selected'); }
-function executeScrapeAction() { playSound(sfxSelect); if (currentOverlayIndex === 0) { document.getElementById('scrape-list').innerHTML = ''; document.getElementById('scrape-game').innerText = "Analyzing DB..."; window.api.runBatchScrape().then(() => { setTimeout(closeScrapeOverlay, 2000); }); } else { closeScrapeOverlay(); } }
+function executeScrapeAction() { playSound(sfxSelect); if (currentOverlayIndex === 0) { document.getElementById('scrape-list').innerHTML = ''; document.getElementById('scrape-game').innerText = t('status.analyzing_db'); window.api.runBatchScrape().then(() => { setTimeout(closeScrapeOverlay, 2000); }); } else { closeScrapeOverlay(); } }
 function updateScrapeProgressBar(data) { if (gameState !== 'SCRAPE') return; document.getElementById('scrape-game').innerText = data.game; document.getElementById('scrape-fill').style.width = `${data.percent}%`; document.getElementById('scrape-percent').innerText = `${Math.floor(data.percent)}%`; }
 function closeScrapeOverlay() { playSound(sfxBack); document.getElementById('scrape-backdrop').classList.add('hidden'); gameState = previousGameState; if (gameState === 'START' || gameState === 'MAIN') setBlur(false); }
 
-async function openSearchOverlay() { if (document.getElementById('overlay-backdrop')) document.getElementById('overlay-backdrop').classList.add('hidden'); gameState = 'SEARCH'; playSound(sfxSelect); setBlur(true); const bd = document.getElementById('search-backdrop'); const lst = document.getElementById('search-list'); const stat = document.getElementById('search-status'); lst.innerHTML = ''; currentSearchIndex = 0; searchResults = []; stat.innerText = "Searching YouTube..."; bd.classList.remove('hidden'); const results = await window.api.searchYoutube(filteredGames[currentGameIndex].Game); if(results.length === 0) { stat.innerText = "No results found."; setTimeout(closeSearchOverlay, 2000); return; } stat.innerText = "Select a video to download:"; searchResults = results; searchResults.forEach((res, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.id = `search-${i}`; div.style.display = "flex"; div.style.gap = "20px"; div.style.alignItems = "center"; div.style.textAlign = "left"; const img = document.createElement('img'); img.src = res.thumbnail; img.style.width = "120px"; img.style.borderRadius = "4px"; let t = String(res.title); if(t.length > 50) t = t.substring(0, 47) + "..."; div.appendChild(img); const txt = document.createElement('div'); txt.innerText = t; div.appendChild(txt); lst.appendChild(div); }); updateSearchSelection(); }
+async function openSearchOverlay() { if (document.getElementById('overlay-backdrop')) document.getElementById('overlay-backdrop').classList.add('hidden'); gameState = 'SEARCH'; playSound(sfxSelect); setBlur(true); const bd = document.getElementById('search-backdrop'); const lst = document.getElementById('search-list'); const stat = document.getElementById('search-status'); lst.innerHTML = ''; currentSearchIndex = 0; searchResults = []; stat.innerText = t('status.searching_yt'); bd.classList.remove('hidden'); const results = await window.api.searchYoutube(filteredGames[currentGameIndex].Game); if(results.length === 0) { stat.innerText = t('status.no_results'); setTimeout(closeSearchOverlay, 2000); return; } stat.innerText = "Select a video to download:"; searchResults = results; searchResults.forEach((res, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.id = `search-${i}`; div.style.display = "flex"; div.style.gap = "20px"; div.style.alignItems = "center"; div.style.textAlign = "left"; const img = document.createElement('img'); img.src = res.thumbnail; img.style.width = "120px"; img.style.borderRadius = "4px"; let ttl = String(res.title); if(ttl.length > 50) ttl = ttl.substring(0, 47) + "..."; div.appendChild(img); const txt = document.createElement('div'); txt.innerText = ttl; div.appendChild(txt); lst.appendChild(div); }); updateSearchSelection(); }
 function updateSearchSelection() { document.querySelectorAll('#search-list .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`search-${currentSearchIndex}`); if (el) el.classList.add('selected'); }
 function closeSearchOverlay() { playSound(sfxBack); document.getElementById('search-backdrop').classList.add('hidden'); gameState = 'MAIN'; setBlur(false); }
 function executeSearchAction() { playSound(sfxSelect); const selectedVideo = searchResults[currentSearchIndex]; closeSearchOverlay(); openProgressOverlay(filteredGames[currentGameIndex].Game, selectedVideo.title, selectedVideo.id); }
-function openProgressOverlay(gameName, videoTitle, videoId) { gameState = 'PROGRESS'; setBlur(true); const bd = document.getElementById('progress-backdrop'); const gameEl = document.getElementById('progress-game'); const fillEl = document.getElementById('progress-fill'); const percentEl = document.getElementById('progress-percent'); const statusEl = document.getElementById('progress-status'); let t = String(videoTitle); if(t.length > 45) t = t.substring(0, 42) + "..."; gameEl.innerText = gameName; statusEl.innerText = `Requesting formats for: ${t}`; fillEl.style.width = "0%"; percentEl.innerText = "0%"; bd.classList.remove('hidden'); window.api.downloadTrailer(gameName, videoId).then(success => { if(success) { statusEl.innerText = "✅ Complete!"; setDebug("🎬 Download successful", true); setTimeout(closeProgressOverlay, 1500); } else { statusEl.innerText = "❌ Download Failed."; setDebug("❌ Download failed", true); setTimeout(closeProgressOverlay, 3000); } }).catch(() => { statusEl.innerText = "❌ Download Failed."; setTimeout(closeProgressOverlay, 3000); }); }
-function updateDownloadProgressBar(percentage) { const fillEl = document.getElementById('progress-fill'); const percentEl = document.getElementById('progress-percent'); const statusEl = document.getElementById('progress-status'); if (gameState !== 'PROGRESS' || !fillEl || !percentEl) return; statusEl.innerText = "Ripping stream via native pipeline..."; fillEl.style.width = `${percentage}%`; percentEl.innerText = `${Math.floor(percentage)}%`; }
+function openProgressOverlay(gameName, videoTitle, videoId) { gameState = 'PROGRESS'; setBlur(true); const bd = document.getElementById('progress-backdrop'); const gameEl = document.getElementById('progress-game'); const fillEl = document.getElementById('progress-fill'); const percentEl = document.getElementById('progress-percent'); const statusEl = document.getElementById('progress-status'); let ttl = String(videoTitle); if(ttl.length > 45) ttl = ttl.substring(0, 42) + "..."; gameEl.innerText = gameName; statusEl.innerText = t('status.requesting_formats', {title: ttl}); fillEl.style.width = "0%"; percentEl.innerText = "0%"; bd.classList.remove('hidden'); window.api.downloadTrailer(gameName, videoId).then(success => { if(success) { statusEl.innerText = t('status.complete'); setDebug("🎬 Download successful", true); setTimeout(closeProgressOverlay, 1500); } else { statusEl.innerText = t('status.download_failed'); setDebug("❌ Download failed", true); setTimeout(closeProgressOverlay, 3000); } }).catch(() => { statusEl.innerText = t('status.download_failed'); setTimeout(closeProgressOverlay, 3000); }); }
+function updateDownloadProgressBar(percentage) { const fillEl = document.getElementById('progress-fill'); const percentEl = document.getElementById('progress-percent'); const statusEl = document.getElementById('progress-status'); if (gameState !== 'PROGRESS' || !fillEl || !percentEl) return; statusEl.innerText = t('status.ripping'); fillEl.style.width = `${percentage}%`; percentEl.innerText = `${Math.floor(percentage)}%`; }
 function closeProgressOverlay() { document.getElementById('progress-backdrop').classList.add('hidden'); gameState = 'MAIN'; setBlur(false); updateGameSelection(); }
 
 function getMediaForCategory(catName) {
@@ -997,7 +1044,7 @@ function updateCategorySelection() {
   updateListTransform(true);
   updateHeroMosaic(categories[currentCategoryIndex]);
 }
-function transitionToMain() { gameState = 'MAIN'; document.getElementById('start-screen').classList.add('hidden'); document.getElementById('main-screen').classList.remove('hidden'); const catName = categories[currentCategoryIndex]; const safeCatName = catName.toLowerCase().replace(/ /g, '_'); const catIconPath = convertSafePath('assets/logos/' + safeCatName + '.png'); document.getElementById('main-header').innerHTML = `<div class="header-icon" style="-webkit-mask-image: url('${catIconPath}');"></div><div>${catName}</div>`; searchQuery = ""; applyLiveFilters(false); }
+function transitionToMain() { gameState = 'MAIN'; document.getElementById('start-screen').classList.add('hidden'); document.getElementById('main-screen').classList.remove('hidden'); const catName = categories[currentCategoryIndex]; const safeCatName = catName.toLowerCase().replace(/ /g, '_'); const catIconPath = convertSafePath('assets/logos/' + safeCatName + '.png'); document.getElementById('main-header').innerHTML = `<div class="header-icon" style="-webkit-mask-image: url('${catIconPath}');"></div><div>${tCat(catName)}</div>`; searchQuery = ""; applyLiveFilters(false); }
 
 // === LIST MENU (VERTICAL CAROUSEL) ===
 const LIST_PHANTOMS = 4;
@@ -1012,7 +1059,7 @@ function buildListTrack() {
     const d = document.createElement('div'); d.className = 'cat-item';
     const safe = cat.toLowerCase().replace(/ /g, '_');
     const icon = convertSafePath(`assets/logos/${safe}.png`);
-    d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image: url('${icon}');"></div><div>${cat}</div>`;
+    d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image: url('${icon}');"></div><div>${tCat(cat)}</div>`;
     track.appendChild(d);
   });
   listRawPos = currentCategoryIndex + LIST_PHANTOMS;
@@ -1068,7 +1115,7 @@ function renderCarouselMode() {
   const track = document.getElementById('carousel-track'); if (!track) return;
   track.innerHTML = '';
   const all = [...categories.slice(-CAROUSEL_PHANTOMS), ...categories, ...categories.slice(0, CAROUSEL_PHANTOMS)];
-  all.forEach(cat => { const item = document.createElement('div'); item.className = 'carousel-item'; const safe = cat.toLowerCase().replace(/ /g, '_'); const icon = convertSafePath(`assets/logos/${safe}.png`); item.innerHTML = `<div class="carousel-item-icon" style="-webkit-mask-image:url('${icon}');"></div><div class="carousel-item-label">${cat}</div>`; track.appendChild(item); });
+  all.forEach(cat => { const item = document.createElement('div'); item.className = 'carousel-item'; const safe = cat.toLowerCase().replace(/ /g, '_'); const icon = convertSafePath(`assets/logos/${safe}.png`); item.innerHTML = `<div class="carousel-item-icon" style="-webkit-mask-image:url('${icon}');"></div><div class="carousel-item-label">${tCat(cat)}</div>`; track.appendChild(item); });
   carouselRawPos = currentCategoryIndex + CAROUSEL_PHANTOMS;
   updateCarouselTransform(false); updateCarouselClasses();
   fillMosaicIn(categories[currentCategoryIndex], 'carousel-hero-icon', 'carousel-hero-mosaic');
@@ -1115,7 +1162,7 @@ function renderGridMode() {
     const safe = cat.toLowerCase().replace(/ /g, '_'); const icon = convertSafePath(`assets/logos/${safe}.png`);
     const media = getMediaForCategory(cat);
     const bg = media.length > 0 ? `<img class="grid-cell-bg" src="${convertSafePath(media[0])}" alt="">` : '';
-    cell.innerHTML = `${bg}<div class="grid-cell-grad"></div><div class="grid-cell-content"><div class="grid-cell-icon" style="-webkit-mask-image:url('${icon}');"></div><div class="grid-cell-name">${cat}</div></div>`;
+    cell.innerHTML = `${bg}<div class="grid-cell-grad"></div><div class="grid-cell-content"><div class="grid-cell-icon" style="-webkit-mask-image:url('${icon}');"></div><div class="grid-cell-name">${tCat(cat)}</div></div>`;
     cells.appendChild(cell);
   });
   updateGridSelection();
@@ -1136,9 +1183,12 @@ function navigateGrid(action) {
 function openStartScreenMenu() {
   gameState = 'START_SCREEN_MENU';
   const current = audioCfg.startScreenMode || 'STATIC';
-  const opts = ['LIST MENU', 'HORIZONTAL CAROUSEL', 'GRID'].map(m => { const key = m === 'LIST MENU' ? 'STATIC' : m === 'HORIZONTAL CAROUSEL' ? 'CAROUSEL' : 'GRID'; return key === current ? `★ ${m}` : m; });
-  opts.push('BACK TO MENU');
-  renderGenericOverlay('START SCREEN', opts);
+  const opts = [t('start_screen.list'), t('start_screen.carousel'), t('start_screen.grid')].map(m => {
+    const key = m === t('start_screen.list') ? 'STATIC' : m === t('start_screen.carousel') ? 'CAROUSEL' : 'GRID';
+    return key === current ? `★ ${m}` : m;
+  });
+  opts.push(t('common.back_to_menu'));
+  renderGenericOverlay(t('start_screen.title'), opts);
 }
 
 function renderGameList() {
@@ -1151,17 +1201,17 @@ function renderGameList() {
     emptyHint.id = 'empty-state-hint';
     emptyHint.className = 'media-layer';
     emptyHint.style.cssText = "display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; text-align: center; background: rgba(0,0,0,0.85); z-index: 20;";
-    emptyHint.innerHTML = `<div style="font-size: 36px; font-weight: 900; color: var(--accent); margin-bottom: 20px; letter-spacing: 2px;">LIBRARY EMPTY</div><div style="font-size: 24px; color: var(--text_sec); line-height: 1.6;">Use the desktop app <strong style="color: var(--text_main);">Cafe Neurotico Game Manager</strong><br>to import games, sync storefronts, and manage your collection.</div>`;
+    emptyHint.innerHTML = `<div style="font-size: 36px; font-weight: 900; color: var(--accent); margin-bottom: 20px; letter-spacing: 2px;">${t('empty.library_title')}</div><div style="font-size: 24px; color: var(--text_sec); line-height: 1.6;">${t('empty.library_body')}</div>`;
     document.getElementById('media-container').appendChild(emptyHint);
   }
 
   if (filteredGames.length === 0) {
-    document.getElementById('game-desc').innerText = "NO GAMES FOUND IN THIS CATEGORY.";
+    document.getElementById('game-desc').innerText = t('empty.no_games');
     clearMediaLoaders();
     const blank = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
     const bg = document.getElementById('cover-backdrop'); bg.src = blank; bg.classList.remove('active');
     const mini = document.getElementById('cover-mini'); mini.src = blank; mini.classList.add('hidden');
-    document.getElementById('stat-dev').innerText = "--"; document.getElementById('stat-pub').innerText = "--"; document.getElementById('stat-release').innerText = "--"; document.getElementById('stat-genre').innerText = "--"; document.getElementById('stat-hltb').innerText = "--"; document.getElementById('stat-proton').innerText = "--";
+    document.getElementById('stat-dev').innerText = "--"; document.getElementById('stat-pub').innerText = "--"; document.getElementById('stat-release').innerText = "--"; document.getElementById('stat-genre').innerText = "--"; document.getElementById('stat-hltb').innerText = "--"; document.getElementById('stat-proton').innerText = "--"; document.getElementById('stat-franchise').innerText = "--";
     if (document.getElementById('store-icons')) document.getElementById('store-icons').innerHTML = '';
     emptyHint.classList.add('active');
     return;
@@ -1174,7 +1224,7 @@ function renderGameList() {
   if (numRecentInList > 0) {
     const labelR = document.createElement('div');
     labelR.style.cssText = "color: var(--accent); font-weight: 900; letter-spacing: 4px; text-align: center; font-size: 16px; padding: 15px 0 5px 0; border-bottom: 2px solid var(--border_solid); margin-bottom: 10px; margin-top: 5px;";
-    labelR.innerText = "RECENT GAMES";
+    labelR.innerText = t('game.recent_games');
     frag.appendChild(labelR);
   }
 
@@ -1182,7 +1232,7 @@ function renderGameList() {
     if (numRecentInList > 0 && i === numRecentInList) {
       const labelA = document.createElement('div');
       labelA.style.cssText = "color: var(--text_sec); font-weight: 900; letter-spacing: 4px; text-align: center; font-size: 16px; padding: 15px 0 5px 0; border-bottom: 2px solid var(--border_solid); margin-bottom: 10px; margin-top: 20px;";
-      labelA.innerText = "ALL GAMES";
+      labelA.innerText = t('game.all_games_header');
       frag.appendChild(labelA);
     }
 
@@ -1242,11 +1292,11 @@ function updateGameSelection() {
   listScrollTimer = setTimeout(() => {
     const game = filteredGames[currentGameIndex];
     try {
-      let d = game.Description ? String(game.Description) : "No description available."; if (d.length > 500) d = d.substring(0, 497) + "..."; document.getElementById('game-desc').innerText = d;
-      document.getElementById('stat-dev').innerText = game.DEV || "--"; document.getElementById('stat-pub').innerText = game.PUB || "--"; document.getElementById('stat-release').innerText = game.RELEASED || "--";
+      let d = getLocalizedDescription(game) || t('empty.no_desc'); if (d.length > 500) d = d.substring(0, 497) + "..."; document.getElementById('game-desc').innerText = d;
+      document.getElementById('stat-dev').innerText = game.DEV || "--"; document.getElementById('stat-pub').innerText = game.PUB || "--"; document.getElementById('stat-release').innerText = game.RELEASED || "--"; document.getElementById('stat-franchise').innerText = game.Franchise || "--";
       let genre = game.GENRE ? String(game.GENRE) : "--"; if (genre.includes(",")) genre = genre.split(",")[0]; document.getElementById('stat-genre').innerText = genre;
-      const hltbEl = document.getElementById('stat-hltb'); if (!game.HLTB_Main || String(game.HLTB_Main).trim() === "") { hltbEl.innerText = "Searching..."; hltbEl.style.color = "var(--text_dim)"; window.api.fetchHltb(game.Game).then(res => { if (filteredGames[currentGameIndex].Game === game.Game) { hltbEl.innerText = res; hltbEl.style.color = "var(--accent)"; game.HLTB_Main = res; if (res !== "Unknown" && res !== "Error") window.api.saveDbField({game: game.Game, field: 'HLTB_Main', value: res}); } }); } else { hltbEl.innerText = game.HLTB_Main; hltbEl.style.color = "var(--accent)"; }
-      const protonEl = document.getElementById('stat-proton'); if (game.SteamAppID && String(game.SteamAppID) !== "None" && (!game.ProtonTier || String(game.ProtonTier).trim() === "")) { protonEl.innerText = "Scanning..."; protonEl.style.color = "var(--text_dim)"; window.api.fetchProton(game.SteamAppID).then(res => { if (filteredGames[currentGameIndex].Game === game.Game) { const tier = String(res).toUpperCase(); colorProtonText(protonEl, tier); game.ProtonTier = tier; if (tier !== "UNKNOWN" && tier !== "ERROR") window.api.saveDbField({game: game.Game, field: 'ProtonTier', value: tier}); } }); } else { if (game.ProtonTier) colorProtonText(protonEl, game.ProtonTier); else { protonEl.innerText = "N/A"; protonEl.style.color = "var(--border_solid)"; } }
+      const hltbEl = document.getElementById('stat-hltb'); if (!game.HLTB_Main || String(game.HLTB_Main).trim() === "") { hltbEl.innerText = t('status.searching'); hltbEl.style.color = "var(--text_dim)"; window.api.fetchHltb(game.Game).then(res => { if (filteredGames[currentGameIndex].Game === game.Game) { hltbEl.innerText = res; hltbEl.style.color = "var(--accent)"; game.HLTB_Main = res; if (res !== "Unknown" && res !== "Error") window.api.saveDbField({game: game.Game, field: 'HLTB_Main', value: res}); } }); } else { hltbEl.innerText = game.HLTB_Main; hltbEl.style.color = "var(--accent)"; }
+      const protonEl = document.getElementById('stat-proton'); if (game.SteamAppID && String(game.SteamAppID) !== "None" && (!game.ProtonTier || String(game.ProtonTier).trim() === "")) { protonEl.innerText = t('status.scanning'); protonEl.style.color = "var(--text_dim)"; window.api.fetchProton(game.SteamAppID).then(res => { if (filteredGames[currentGameIndex].Game === game.Game) { const tier = String(res).toUpperCase(); colorProtonText(protonEl, tier); game.ProtonTier = tier; if (tier !== "UNKNOWN" && tier !== "ERROR") window.api.saveDbField({game: game.Game, field: 'ProtonTier', value: tier}); } }); } else { if (game.ProtonTier) colorProtonText(protonEl, game.ProtonTier); else { protonEl.innerText = t('status.na'); protonEl.style.color = "var(--border_solid)"; } }
       let hasCover = game.CoverArt && String(game.CoverArt).trim() !== "";
       let hasScreenshotsTemp = game.Screenshot && String(game.Screenshot).trim() !== "";
 
@@ -1256,7 +1306,7 @@ function updateGameSelection() {
         noMediaHint.id = 'no-media-hint';
         noMediaHint.className = 'media-layer';
         noMediaHint.style.cssText = "display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; text-align: center; background: rgba(0,0,0,0.7); z-index: 15;";
-        noMediaHint.innerHTML = `<div style="font-size: 32px; font-weight: 900; color: var(--accent); margin-bottom: 15px; letter-spacing: 2px;">NO MEDIA FOUND</div><div style="font-size: 20px; color: var(--text_sec); line-height: 1.6;">Press <strong>[SELECT]</strong> to open Game Options.<br>Use the <strong style="color: var(--text_main);">SCRAPING ENGINE</strong> to download artwork.<br>If the automatic scan fails, select <strong>REFINE SEARCH</strong>.</div>`;
+        noMediaHint.innerHTML = `<div style="font-size: 32px; font-weight: 900; color: var(--accent); margin-bottom: 15px; letter-spacing: 2px;">${t('empty.no_media')}</div><div style="font-size: 20px; color: var(--text_sec); line-height: 1.6;">${t('empty.no_media_hint1')}<br>${t('empty.no_media_hint2')}<br>${t('empty.no_media_hint3')}</div>`;
         document.getElementById('media-container').appendChild(noMediaHint);
       }
 
@@ -1314,15 +1364,15 @@ async function openJukebox() {
   document.getElementById('main-screen').classList.add('hidden');
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('jukebox-screen').classList.remove('hidden');
-  document.getElementById('jb-footer').innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} Navigate &nbsp;&nbsp; ${getMappedBtn('SOUTH')} Play &nbsp;&nbsp; ${getMappedBtn('EAST')} Back &nbsp;&nbsp; ${getMappedBtn('NORTH')} Search &nbsp;&nbsp; ${getMappedBtn('WEST')} Fullscreen &nbsp;&nbsp; ${getMappedBtn('SELECT')} Options`;
+  document.getElementById('jb-footer').innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} ${t('footer.navigate')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.play')} &nbsp;&nbsp; ${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('WEST')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
 
   if (jbLibrary.length === 0) {
-    document.getElementById('jb-status').innerText = "Scanning Music Folder...";
+    document.getElementById('jb-status').innerText = t('status.scanning_music');
     jbLibrary = await window.api.getMusicLibrary();
     jbPlaylists = await window.api.getPlaylists() || {};
   }
 
-  document.getElementById('jb-status').innerText = `${jbLibrary.length} Tracks Loaded`;
+  document.getElementById('jb-status').innerText = t('jb.n_tracks', {n: jbLibrary.length});
   jbFocus = 'SIDEBAR'; jbNavIndex = 0; jbView = 'ROOT'; jbListIndex = 0; jbSearchQuery = "";
   updateJbSidebar();
   renderJbList();
@@ -1347,9 +1397,11 @@ function closeJukebox() {
 }
 
 function updateJbSidebar() {
+  const jbNavLabels = [t('jb.songs'), t('jb.artists'), t('jb.albums'), t('jb.playlists')];
   for(let i=0; i<4; i++) {
     let el = document.getElementById(`jb-nav-${i}`);
     if(el) {
+      el.innerText = jbNavLabels[i];
       el.classList.remove('selected');
       if(i === jbNavIndex && jbFocus === 'SIDEBAR') el.classList.add('selected');
       else if (i === jbNavIndex && jbFocus === 'LIST') { el.style.color = 'var(--accent)'; el.style.fontWeight = 'bold'; }
@@ -1366,11 +1418,11 @@ function renderJbList() {
     if (jbNavIndex === 0) jbListItems = jbLibrary;
     else if (jbNavIndex === 1) jbListItems = [...new Set(jbLibrary.map(t => t.artist))].sort();
     else if (jbNavIndex === 2) jbListItems = [...new Set(jbLibrary.map(t => t.album))].sort();
-    else if (jbNavIndex === 3) { jbListItems = Object.keys(jbPlaylists); jbListItems.unshift("+ CREATE NEW PLAYLIST"); }
+    else if (jbNavIndex === 3) { jbListItems = Object.keys(jbPlaylists); jbListItems.unshift(t('jb.add_new_playlist')); }
   } else if (jbView === 'ARTIST_ALBUMS') {
     let artistTracks = jbLibrary.filter(t => t.artist === jbActiveSelection);
     let albums = [...new Set(artistTracks.map(t => t.album))].sort();
-    jbListItems = ["ALL SONGS", ...albums];
+    jbListItems = [t('jb.all_songs'), ...albums];
   } else if (jbView === 'SUBLIST_ALBUM') {
     jbListItems = jbLibrary.filter(t => t.artist === jbActiveSelection && t.album === jbSecondarySelection);
   } else {
@@ -1387,15 +1439,15 @@ function renderJbList() {
     if (jbLibrary.length === 0) {
       l.innerHTML = `
       <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; box-sizing: border-box; text-align: center; background: rgba(0,0,0,0.4); border-radius: 12px; height: 100%; border: 2px dashed var(--border_solid);">
-      <div style="font-size: 32px; font-weight: 900; color: var(--accent); margin-bottom: 20px; letter-spacing: 2px;">LIBRARY EMPTY</div>
+      <div style="font-size: 32px; font-weight: 900; color: var(--accent); margin-bottom: 20px; letter-spacing: 2px;">${t('empty.jb_title')}</div>
       <div style="font-size: 22px; color: var(--text_sec); line-height: 1.6;">
-      To build your Jukebox collection, go to the the folder where the CREMA app is located and add your audio files to the folder:<br>
-      <strong style="color: var(--text_main); display: inline-block; margin-top: 10px; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 6px;">CREMA_CUSTOM_MUSIC</strong><br><br>
-      Close and reopen the Jukebox to scan for tracks.
+      ${t('empty.jb_body')}<br>
+      <strong style="color: var(--text_main); display: inline-block; margin-top: 10px; background: rgba(0,0,0,0.5); padding: 8px 15px; border-radius: 6px;">${t('empty.jb_folder')}</strong><br><br>
+      ${t('empty.jb_hint')}
       </div>
       </div>`;
     } else {
-      l.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--text_dim); font-size: 26px; font-weight: bold; letter-spacing: 2px;">NO TRACKS FOUND</div>`;
+      l.innerHTML = `<div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--text_dim); font-size: 26px; font-weight: bold; letter-spacing: 2px;">${t('empty.jb_no_tracks')}</div>`;
     }
     return;
   }
@@ -1443,8 +1495,8 @@ function toggleJbPlayPause() {
 function handleJbListAccept() {
   if (jbView === 'ROOT' && jbNavIndex !== 0) {
     const sel = jbListItems[jbListIndex];
-    if (jbNavIndex === 3 && sel === "+ CREATE NEW PLAYLIST") {
-      openOSK('NEW_PLAYLIST', 'PLAYLIST NAME', '');
+    if (jbNavIndex === 3 && sel === t('jb.add_new_playlist')) {
+      openOSK('NEW_PLAYLIST', t('osk.playlist_name'), '');
       return;
     }
     jbActiveSelection = sel;
@@ -1454,7 +1506,7 @@ function handleJbListAccept() {
     renderJbList();
   } else if (jbView === 'ARTIST_ALBUMS') {
     const sel = jbListItems[jbListIndex];
-    if (sel === "ALL SONGS") {
+    if (sel === t('jb.all_songs')) {
       jbView = 'SUBLIST';
     } else {
       jbView = 'SUBLIST_ALBUM';
@@ -1497,13 +1549,13 @@ function updateJbNowPlayingUI() {
 
     const npCover = document.getElementById('jb-np-cover');
     if (npCover) npCover.src = svgData;
-    document.getElementById('jb-np-title').innerText = "No Track Selected";
+    document.getElementById('jb-np-title').innerText = t('jb.no_track');
     document.getElementById('jb-np-artist').innerText = "---";
 
     if (jbIsFullscreen) {
       const fsCover = document.getElementById('jb-fs-cover');
       if (fsCover) fsCover.src = svgData;
-      const fsTitle = document.getElementById('jb-fs-title'); if (fsTitle) fsTitle.innerText = "No Track Selected";
+      const fsTitle = document.getElementById('jb-fs-title'); if (fsTitle) fsTitle.innerText = t('jb.no_track');
       const fsArtist = document.getElementById('jb-fs-artist'); if (fsArtist) fsArtist.innerText = "---";
       const fsCur = document.getElementById('jb-fs-current'); if (fsCur) fsCur.innerText = "0:00";
       const fsTot = document.getElementById('jb-fs-total'); if (fsTot) fsTot.innerText = "0:00";
@@ -1628,95 +1680,99 @@ function handleJbSelectBtn() {
     if (jbListIndex === 0) return;
     jbActionTarget = jbListItems[jbListIndex];
     gameState = 'JUKEBOX_OVERLAY'; currentOverlayType = 'JB_PLAYLIST_OPTS';
-    renderGenericOverlay(`PLAYLIST: ${jbActionTarget}`, ["REMOVE PLAYLIST", "DUPLICATE PLAYLIST", "RENAME PLAYLIST", "CANCEL"]);
+    renderGenericOverlay(t('jb.playlist_options', {name: jbActionTarget}), [t('jb.remove_playlist'), t('jb.duplicate_playlist'), t('jb.rename_playlist'), t('common.cancel')]);
   } else if ((jbView === 'ROOT' && (jbNavIndex === 1 || jbNavIndex === 2)) || jbView === 'ARTIST_ALBUMS') {
     const sel = jbListItems[jbListIndex];
     let batchType = 'ALBUM';
     let targetName = sel;
-    let overlayTitle = `ALBUM: ${sel}`;
+    let overlayTitle = t('jb.album_batch', {name: sel});
 
-    if ((jbView === 'ROOT' && jbNavIndex === 1) || sel === "ALL SONGS") {
+    if ((jbView === 'ROOT' && jbNavIndex === 1) || sel === t('jb.all_songs')) {
       batchType = 'ARTIST';
-      targetName = sel === "ALL SONGS" ? jbActiveSelection : sel;
-      overlayTitle = `ARTIST: ${targetName}`;
+      targetName = sel === t('jb.all_songs') ? jbActiveSelection : sel;
+      overlayTitle = t('jb.artist_batch', {name: targetName});
     }
 
     jbActionTarget = { type: batchType, name: targetName, artist: jbActiveSelection };
     gameState = 'JUKEBOX_OVERLAY'; currentOverlayType = 'JB_BATCH_ADD';
 
-    let opts = Object.keys(jbPlaylists).map(p => `ADD TO: ${p}`);
-    opts.unshift("+ CREATE NEW PLAYLIST");
-    opts.push("CANCEL");
+    let opts = Object.keys(jbPlaylists).map(p => t('jb.add_to', {name: p}));
+    opts.unshift(t('jb.add_new_playlist'));
+    opts.push(t('common.cancel'));
     renderGenericOverlay(overlayTitle, opts);
   } else if (jbNavIndex === 0 || jbView === 'SUBLIST' || jbView === 'SUBLIST_ALBUM') {
     jbActionTarget = jbListItems[jbListIndex];
     gameState = 'JUKEBOX_OVERLAY'; currentOverlayType = 'JB_SONG_OPTS';
-    let opts = Object.keys(jbPlaylists).map(p => `ADD TO: ${p}`);
-    opts.unshift("+ CREATE NEW PLAYLIST");
-    if (jbNavIndex === 3 && jbView === 'SUBLIST') opts.unshift("REMOVE FROM THIS PLAYLIST");
-    opts.push("CANCEL");
-    renderGenericOverlay(`SONG OPTIONS`, opts);
+    let opts = Object.keys(jbPlaylists).map(p => t('jb.add_to', {name: p}));
+    opts.unshift(t('jb.add_new_playlist'));
+    if (jbNavIndex === 3 && jbView === 'SUBLIST') opts.unshift(t('jb.remove_from'));
+    opts.push(t('common.cancel'));
+    renderGenericOverlay(t('jb.song_options'), opts);
   }
 }
 
 function executeJbOverlayAction() {
   const action = overlayItems[currentOverlayIndex];
-  if (action === "CANCEL") { closeOverlay(); gameState = 'JUKEBOX'; return; }
+  if (action === t('common.cancel')) { closeOverlay(); gameState = 'JUKEBOX'; return; }
 
-  if (action === "+ CREATE NEW PLAYLIST" && (currentOverlayType === 'JB_BATCH_ADD' || currentOverlayType === 'JB_SONG_OPTS')) {
+  if (action === t('jb.add_new_playlist') && (currentOverlayType === 'JB_BATCH_ADD' || currentOverlayType === 'JB_SONG_OPTS')) {
     closeOverlay();
-    openOSK('NEW_PLAYLIST_ADD', 'NEW PLAYLIST NAME', '');
+    openOSK('NEW_PLAYLIST_ADD', t('osk.new_playlist_name'), '');
     return;
   }
 
   if (currentOverlayType === 'JB_PLAYLIST_OPTS') {
-    if (action === "REMOVE PLAYLIST") {
+    if (action === t('jb.remove_playlist')) {
       delete jbPlaylists[jbActionTarget];
       window.api.savePlaylists(jbPlaylists);
       closeOverlay(); gameState = 'JUKEBOX'; renderJbList();
-    } else if (action === "DUPLICATE PLAYLIST") {
+    } else if (action === t('jb.duplicate_playlist')) {
       jbPlaylists[`${jbActionTarget} Copy`] = [...jbPlaylists[jbActionTarget]];
       window.api.savePlaylists(jbPlaylists);
       closeOverlay(); gameState = 'JUKEBOX'; renderJbList();
-    } else if (action === "RENAME PLAYLIST") {
+    } else if (action === t('jb.rename_playlist')) {
       closeOverlay();
-      openOSK('RENAME_PLAYLIST', 'RENAME PLAYLIST', jbActionTarget);
+      openOSK('RENAME_PLAYLIST', t('osk.rename_playlist'), jbActionTarget);
     }
   } else if (currentOverlayType === 'JB_BATCH_ADD') {
-    if (action.startsWith("ADD TO: ")) {
-      let pName = action.replace("ADD TO: ", "");
+    const addPrefix = t('jb.add_to', {name: ''});
+    if (action.startsWith(addPrefix)) {
+      let pName = action.slice(addPrefix.length);
       let tracksToAdd = [];
 
       if (jbActionTarget.type === 'ARTIST') {
-        tracksToAdd = jbLibrary.filter(t => t.artist === jbActionTarget.name);
+        tracksToAdd = jbLibrary.filter(tr => tr.artist === jbActionTarget.name);
       } else if (jbActionTarget.type === 'ALBUM') {
         if (jbView === 'ARTIST_ALBUMS') {
-          tracksToAdd = jbLibrary.filter(t => t.artist === jbActionTarget.artist && t.album === jbActionTarget.name);
+          tracksToAdd = jbLibrary.filter(tr => tr.artist === jbActionTarget.artist && tr.album === jbActionTarget.name);
         } else {
-          tracksToAdd = jbLibrary.filter(t => t.album === jbActionTarget.name);
+          tracksToAdd = jbLibrary.filter(tr => tr.album === jbActionTarget.name);
         }
       }
 
-      tracksToAdd.forEach(t => {
-        if (!jbPlaylists[pName].includes(t.path)) jbPlaylists[pName].push(t.path);
+      tracksToAdd.forEach(tr => {
+        if (!jbPlaylists[pName].includes(tr.path)) jbPlaylists[pName].push(tr.path);
       });
 
         window.api.savePlaylists(jbPlaylists);
         closeOverlay(); gameState = 'JUKEBOX';
     }
   } else if (currentOverlayType === 'JB_SONG_OPTS') {
-    if (action === "REMOVE FROM THIS PLAYLIST") {
+    if (action === t('jb.remove_from')) {
       let pList = jbPlaylists[jbActiveSelection];
       jbPlaylists[jbActiveSelection] = pList.filter(p => p !== jbActionTarget.path);
       window.api.savePlaylists(jbPlaylists);
       closeOverlay(); gameState = 'JUKEBOX'; renderJbList();
-    } else if (action.startsWith("ADD TO: ")) {
-      let pName = action.replace("ADD TO: ", "");
-      if (!jbPlaylists[pName].includes(jbActionTarget.path)) {
-        jbPlaylists[pName].push(jbActionTarget.path);
-        window.api.savePlaylists(jbPlaylists);
+    } else {
+      const addPrefix = t('jb.add_to', {name: ''});
+      if (action.startsWith(addPrefix)) {
+        let pName = action.slice(addPrefix.length);
+        if (!jbPlaylists[pName].includes(jbActionTarget.path)) {
+          jbPlaylists[pName].push(jbActionTarget.path);
+          window.api.savePlaylists(jbPlaylists);
+        }
+        closeOverlay(); gameState = 'JUKEBOX';
       }
-      closeOverlay(); gameState = 'JUKEBOX';
     }
   }
 }
@@ -1767,7 +1823,7 @@ function handleJukeboxInput(action) {
         else pop.classList.add('hidden');
       }
     } else {
-      playSound(sfxSelect); openOSK('JB_SEARCH', 'SEARCH MUSIC', jbSearchQuery);
+      playSound(sfxSelect); openOSK('JB_SEARCH', t('osk.jb_search'), jbSearchQuery);
     }
   }
   else if (jbFocus === 'SIDEBAR') {

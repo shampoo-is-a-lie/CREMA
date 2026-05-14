@@ -38,5 +38,8 @@ contextBridge.exposeInMainWorld('api', {
 
                                 // FIX: Expose Gaming History IPCs for CREMA
                                 updateLastPlayed: (gameName) => ipcRenderer.invoke('update-last-played', gameName),
-                                clearHistory: () => ipcRenderer.invoke('clear-history')
+                                clearHistory: () => ipcRenderer.invoke('clear-history'),
+
+                                // --- I18N ---
+                                getStrings: (lang) => ipcRenderer.invoke('get-strings', lang)
 });
