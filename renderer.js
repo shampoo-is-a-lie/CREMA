@@ -2065,14 +2065,26 @@ function updateGallerySelection(animate = true) {
   document.querySelectorAll('.gcell').forEach((el, i) => el.classList.toggle('selected', i === galleryIndex));
   const scroller = document.getElementById('gallery-scroll');
   const inRecentSection = galleryNumRecent > 0 && galleryIndex < galleryNumRecent;
-  const atVeryTop = galleryIndex === 0; // covers no-recent case too
-  if ((inRecentSection || (!galleryNumRecent && atVeryTop)) && scroller) {
-    // Navigated into the recent section or top — scroll to top so section header stays visible
-    scroller.scrollTop = 0;
-  } else {
-    const sel = document.getElementById(`gcell-${galleryIndex}`);
-    if (sel) sel.scrollIntoView({ behavior: animate ? 'smooth' : 'instant', block: 'nearest' });
+  const atVeryTopNoRecent = galleryNumRecent === 0 && galleryIndex === 0;
+
+  if (scroller) {
+    if (inRecentSection || atVeryTopNoRecent) {
+      // Navigated to the recent section or top — scroll smoothly to reveal section header
+      if (animate) scroller.scrollTo({ top: 0, behavior: 'smooth' });
+      else scroller.scrollTop = 0;
+    } else {
+      const sel = document.getElementById(`gcell-${galleryIndex}`);
+      if (sel) {
+        // Keep selected cell vertically centered in the scroll container.
+        // sel.offsetTop is relative to gallery-scroll (the nearest position:relative ancestor),
+        // so we can compute the target directly without getBoundingClientRect.
+        const targetTop = Math.max(0, sel.offsetTop - scroller.clientHeight / 2 + sel.offsetHeight / 2);
+        if (animate) scroller.scrollTo({ top: targetTop, behavior: 'smooth' });
+        else scroller.scrollTop = targetTop;
+      }
+    }
   }
+
   const game = galleryGames[galleryIndex];
   if (game) updateGalleryBg(game);
 }
