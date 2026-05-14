@@ -2039,7 +2039,7 @@ function renderGalleryGrid() {
     const imgSrc = game.CoverArt ? convertSafePath(game.CoverArt) : '';
     const logo = getGalleryStoreLogo(game.Store);
     const badge = logo ? `<div class="gcell-badge" style="-webkit-mask-image:url('${logo}');"></div>` : '';
-    const playBtn = (game.LaunchCommand && String(game.LaunchCommand).trim()) ? `<button class="gcell-play-btn">▶ PLAY</button>` : '';
+    const playBtn = (game.LaunchCommand && String(game.LaunchCommand).trim()) ? `<button class="gcell-play-btn">▶ PLAYABLE</button>` : '';
     const coverArea = imgSrc
       ? `<div class="gcell-cover-area"><img src="${imgSrc}" alt="">${badge}</div>`
       : `<div class="gcell-cover-area"><div class="gcell-noart">${game.Game}</div>${badge}</div>`;
