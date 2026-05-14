@@ -2009,7 +2009,7 @@ function renderGalleryGrid() {
   const searchTag = document.getElementById('gallery-search-tag');
   if (galleryQuery) { searchTag.style.display = 'block'; searchTag.innerText = `"${galleryQuery}"`; }
   else { searchTag.style.display = 'none'; }
-  document.getElementById('gallery-count').innerText = `${galleryGames.length}`;
+  document.getElementById('gallery-count').innerText = `${galleryGames.length} ${t('history.games')}`;
 
   // Section header: recent games
   if (galleryNumRecent > 0) {
@@ -2070,25 +2070,58 @@ function updateGalleryBg(game) {
     : game.Screenshot ? convertSafePath(String(game.Screenshot).split('|')[0])
     : game.CoverArt ? convertSafePath(game.CoverArt) : '';
 
-  const bg = document.getElementById('gallery-bg-img');
-  if (bg && src) bg.src = src;
-
   const heroImg = document.getElementById('gallery-hero-img');
   if (heroImg && src) heroImg.src = src;
 
   const heroName = document.getElementById('gallery-hero-game-name');
   if (heroName) heroName.innerText = game.Game;
+
+  const heroLogo = document.getElementById('gallery-hero-logo');
+  if (heroLogo) {
+    const logoSrc = game.Logo ? convertSafePath(game.Logo) : '';
+    if (logoSrc) {
+      heroLogo.src = logoSrc;
+      heroLogo.style.display = '';
+    } else {
+      heroLogo.src = '';
+      heroLogo.style.display = 'none';
+    }
+  }
 }
 
 function navigateGallery(dir) {
   const N = galleryGames.length;
   if (N === 0) return;
   const COLS = 9;
+  const nr = galleryNumRecent;
   let idx = galleryIndex;
+
   if (dir === 'RIGHT') idx = (idx + 1) % N;
   else if (dir === 'LEFT') idx = (idx - 1 + N) % N;
-  else if (dir === 'DOWN') { const next = idx + COLS; if (next < N) idx = next; }
-  else if (dir === 'UP') { const prev = idx - COLS; if (prev >= 0) idx = prev; }
+  else if (dir === 'DOWN') {
+    if (nr > 0 && idx < nr) {
+      // Recent row → same visual column in first regular row
+      const target = nr + idx;
+      if (target < N) idx = target;
+    } else {
+      const next = idx + COLS;
+      if (next < N) idx = next;
+    }
+  }
+  else if (dir === 'UP') {
+    if (idx < nr) {
+      // Already in recent row, nowhere to go up
+    } else if (nr > 0 && idx < nr + COLS) {
+      // First regular row → same visual column in recent row (if a game exists there)
+      const col = idx - nr; // 0-based column within this row
+      if (col < nr) idx = col;
+    } else {
+      // Regular row 2+ (or no recent section): go up one row
+      const prev = idx - COLS;
+      if (prev >= 0) idx = prev;
+    }
+  }
+
   if (idx !== galleryIndex) { galleryIndex = idx; playSound(sfxNav); updateGallerySelection(); }
 }
 
