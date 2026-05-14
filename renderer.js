@@ -161,8 +161,8 @@ function renderFootersForKeyboard() {
   const prmpt = document.getElementById('mini-prompt'); if (prmpt) prmpt.innerHTML = t('footer.trailer', {btn: k('X')});
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = k('Enter'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = k('Y'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = k('X');
   const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('X')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
-  const galF = document.getElementById('gallery-footer'); if (galF) galF.innerHTML = `${k('↑')}${k('↓')}${k('←')}${k('→')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('[')}${k(']')} ${t('footer.category')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('M')} ${t('footer.menu')}`;
-  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Y')} ★ FAV &nbsp;&nbsp; ${k('X')} ${t('footer.media')} &nbsp;&nbsp; ${k('[')}${k(']')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
+  const galF = document.getElementById('gallery-footer'); if (galF) galF.innerHTML = `${k('↑')}${k('↓')}${k('←')}${k('→')} ${t('footer.navigate')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.category')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('M')} ${t('footer.menu')}`;
+  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Y')} ★ FAV &nbsp;&nbsp; ${k('X')} ${t('footer.media')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
 }
 function updateJbFsHints() {
   const hint = document.getElementById('jb-fs-controls-hint'); if (!hint) return;
@@ -186,6 +186,9 @@ function setInputMethod(keyboard) {
   usingKeyboard = keyboard;
   if (keyboard) renderFootersForKeyboard(); else renderHardwareIcons();
   updateJbFsHints();
+}
+function renderFooters() {
+  if (usingKeyboard) renderFootersForKeyboard(); else renderHardwareIcons();
 }
 
 async function initAudio() {
@@ -417,7 +420,14 @@ window.addEventListener('keydown', (e) => {
       else if (e.key === 'x' || e.key === 'X') handleInput('X_BUTTON'); else if (e.key === 'y' || e.key === 'Y') handleInput('Y_BUTTON');
       else if (e.key === 'o' || e.key === 'O') handleInput('SELECT_BTN'); else if (e.key === 'm' || e.key === 'M') handleInput('START');
       else if (e.key === 'PageUp') handleInput('L1'); else if (e.key === 'PageDown') handleInput('R1');
-      else if (e.key === '[' || e.key === ',') handleInput('L3'); else if (e.key === ']' || e.key === '.') handleInput('R3');
+      else if (e.key === '[' || e.key === ',') {
+        const inGallery = gameState === 'GALLERY' || gameState === 'GALLERY_GAMEPAGE';
+        handleInput(inGallery ? 'L1' : 'L3');
+      }
+      else if (e.key === ']' || e.key === '.') {
+        const inGallery = gameState === 'GALLERY' || gameState === 'GALLERY_GAMEPAGE';
+        handleInput(inGallery ? 'R1' : 'R3');
+      }
     }
   } catch (err) { setDebug("ERR: " + err.message, true); }
 });
@@ -1992,7 +2002,7 @@ function transitionToGallery() {
   applyGalleryFilter();
   galleryIndex = 0;
   renderGalleryGrid();
-  renderHardwareIcons();
+  renderFooters();
   resetIdleTimer();
 }
 
@@ -2054,8 +2064,10 @@ function renderGalleryGrid() {
 function updateGallerySelection(animate = true) {
   document.querySelectorAll('.gcell').forEach((el, i) => el.classList.toggle('selected', i === galleryIndex));
   const scroller = document.getElementById('gallery-scroll');
-  if (!animate && galleryIndex === 0 && scroller) {
-    // Reset to top so the RECENT GAMES section header is visible
+  const inRecentSection = galleryNumRecent > 0 && galleryIndex < galleryNumRecent;
+  const atVeryTop = galleryIndex === 0; // covers no-recent case too
+  if ((inRecentSection || (!galleryNumRecent && atVeryTop)) && scroller) {
+    // Navigated into the recent section or top — scroll to top so section header stays visible
     scroller.scrollTop = 0;
   } else {
     const sel = document.getElementById(`gcell-${galleryIndex}`);
@@ -2142,7 +2154,7 @@ function openGalleryGamepage(game) {
 
   clearGalleryMedia();
   updateGalleryGamepageContent(game);
-  renderHardwareIcons();
+  renderFooters();
 }
 
 function closeGalleryGamepage() {
@@ -2150,7 +2162,7 @@ function closeGalleryGamepage() {
   document.getElementById('ggp-screen').classList.add('hidden');
   document.getElementById('gallery-screen').classList.remove('hidden');
   gameState = 'GALLERY';
-  renderHardwareIcons();
+  renderFooters();
 }
 
 function galleryGamepageNavigate(delta) {
