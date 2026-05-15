@@ -295,13 +295,13 @@ function setDebug(msg, show = true) { const dbg = document.getElementById('media
 function setupOptions() {
   return {
     start: [
-      { id: 'STATIC',   img: 'assets/setup/start_static.png',   name: t('start_screen.list'),     desc: 'Navigate your library in a clean, vertical list. Cover art, screenshots and stats appear instantly on the right as you scroll.' },
-      { id: 'CAROUSEL', img: 'assets/setup/start_carousel.png', name: t('start_screen.carousel'), desc: 'One game fills the screen at a time. Bold, immersive, built for a couch and a controller. The true console experience.' },
-      { id: 'GRID',     img: 'assets/setup/start_grid.png',     name: t('start_screen.grid'),     desc: 'Your cover art in a mosaic grid. Navigate in any direction through your entire collection at a glance.' },
+      { id: 'STATIC',   img: 'assets/setup/start_static.png',   name: t('start_screen.list'),     desc: 'Navigate your library in a clean, vertical list.' },
+      { id: 'CAROUSEL', img: 'assets/setup/start_carousel.png', name: t('start_screen.carousel'), desc: 'Bold, immersive, built for a couch and a controller.' },
+      { id: 'GRID',     img: 'assets/setup/start_grid.png',     name: t('start_screen.grid'),     desc: 'Your cover art in a mosaic grid. Your entire collection at a glance.' },
     ],
     browse: [
-      { id: 'LIST',    img: 'assets/setup/browse_list.png',    name: t('browse.list'),    desc: 'A focused side-by-side layout — game list on the left, rich details, screenshots and metadata on the right.' },
-      { id: 'GALLERY', img: 'assets/setup/browse_gallery.png', name: t('browse.gallery'), desc: 'An immersive cover art grid with a hero banner at the top. Select any game to open its full dedicated gamepage.' },
+      { id: 'LIST',    img: 'assets/setup/browse_list.png',    name: t('browse.list'),    desc: '1-click play. A focused side-by-side layout — game list on the left, screenshots and metadata on the right.' },
+      { id: 'GALLERY', img: 'assets/setup/browse_gallery.png', name: t('browse.gallery'), desc: 'An immersive cover art grid. Select any game to open its full dedicated gamepage with rich details.' },
     ]
   };
 }
@@ -331,8 +331,8 @@ function renderSetupScreen() {
     ? 'CHOOSE YOUR START SCREEN'
     : 'HOW WOULD YOU LIKE TO BROWSE?';
   document.getElementById('setup-subtitle').innerText = isPhase1
-    ? 'Select the view that greets you every time CREMA opens.'
-    : 'Pick your preferred way to explore your game library.';
+    ? 'Select the view that greets you every time CREMA opens. You can change this anytime in the System Menu.'
+    : 'Pick your preferred way to browse your game library. You can change this anytime in the System Menu.';
 
   // Cards
   const cardsEl = document.getElementById('setup-cards');
