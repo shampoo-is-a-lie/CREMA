@@ -2475,7 +2475,7 @@ function updateGalleryGamepageContent(game) {
     fullEl.style.display = 'none';
     const noDesc = !localDesc || !localDesc.trim();
     fallbackEl.innerText = noDesc
-      ? (heroSrc ? t('empty.no_desc') : 'This game has no artwork or metadata scraped yet.\n\nPress SELECT → SCRAPING ENGINE to download images and information automatically.')
+      ? (heroSrc ? t('empty.no_desc') : 'This game has no artwork or metadata scraped yet.\n\nPress SELECT → SCRAPING ENGINE to download images and information automatically. Or use Cafe Neurotico Game Manager (the desktop app) to have more detailed, in-depth editing tools.')
       : '';
     fallbackEl.style.display = noDesc ? 'block' : 'none';
   }
