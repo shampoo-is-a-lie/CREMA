@@ -2267,7 +2267,17 @@ function updateGallerySelection(animate = true) {
   }
 
   const game = galleryGames[galleryIndex];
-  if (game) updateGalleryBg(game);
+  if (game) {
+    updateGalleryBg(game);
+  } else {
+    // Empty category — clear every hero element so no stale image lingers
+    const heroImg = document.getElementById('gallery-hero-img');
+    if (heroImg) { heroImg.src = ''; heroImg.style.display = 'none'; }
+    const heroLogo = document.getElementById('gallery-hero-logo');
+    if (heroLogo) { heroLogo.src = ''; heroLogo.style.display = 'none'; }
+    const heroName = document.getElementById('gallery-hero-game-name');
+    if (heroName) heroName.innerText = '';
+  }
 }
 
 function updateGalleryBg(game) {
@@ -2383,6 +2393,12 @@ function updateGalleryGamepageContent(game) {
   const heroImg = document.getElementById('ggp-hero-img');
   if (heroImg) { heroImg.src = heroSrc; heroImg.style.display = heroSrc ? 'block' : 'none'; }
 
+  // Hero placeholder when no art at all
+  const heroPh = document.getElementById('ggp-hero-placeholder');
+  const heroPhName = document.getElementById('ggp-hero-ph-name');
+  if (heroPh) heroPh.style.display = heroSrc ? 'none' : 'flex';
+  if (heroPhName) heroPhName.innerText = game.Game || '';
+
   // Logo or title text
   const logoEl = document.getElementById('ggp-logo-img');
   const logoSrc = game.Logo ? convertSafePath(game.Logo) : '';
@@ -2399,7 +2415,9 @@ function updateGalleryGamepageContent(game) {
   // Cover art
   const coverEl = document.getElementById('ggp-media-img');
   const coverSrc = game.CoverArt ? convertSafePath(game.CoverArt) : '';
-  if (coverEl) { coverEl.src = coverSrc; }
+  if (coverEl) { coverEl.src = coverSrc; coverEl.style.display = coverSrc ? 'block' : 'none'; }
+  const coverPh = document.getElementById('ggp-cover-placeholder');
+  if (coverPh) coverPh.style.display = coverSrc ? 'none' : 'flex';
 
   // Action buttons
   ggpTrailerAvailable = false;
@@ -2455,8 +2473,11 @@ function updateGalleryGamepageContent(game) {
     fallbackEl.style.display = 'none';
   } else {
     fullEl.style.display = 'none';
-    fallbackEl.innerText = (!localDesc || !localDesc.trim()) ? t('empty.no_desc') : '';
-    fallbackEl.style.display = (!localDesc || !localDesc.trim()) ? 'block' : 'none';
+    const noDesc = !localDesc || !localDesc.trim();
+    fallbackEl.innerText = noDesc
+      ? (heroSrc ? t('empty.no_desc') : 'This game has no artwork or metadata scraped yet.\n\nPress SELECT → SCRAPING ENGINE to download images and information automatically.')
+      : '';
+    fallbackEl.style.display = noDesc ? 'block' : 'none';
   }
 
   // Series + Similar in stats panel extra area
@@ -2624,11 +2645,15 @@ function ggpPlayTrailer(url) {
   const img = document.getElementById('ggp-ss-img');
   const vid = document.getElementById('ggp-trailer-vid');
   const counter = document.getElementById('ggp-ss-counter');
+  const header = document.getElementById('ggp-trailer-header');
+  const titleEl = document.getElementById('ggp-trailer-game-name');
   if (img) img.style.display = 'none';
   if (counter) counter.style.display = 'none';
+  if (header) header.style.display = 'flex';
+  if (titleEl && galleryCurrentGame) titleEl.innerText = galleryCurrentGame.Game;
   if (vid) { vid.src = url; vid.style.display = 'block'; vid.play().catch(e => {}); }
   const hint = document.getElementById('ggp-ss-hint');
-  if (hint) hint.innerText = usingKeyboard ? `Esc / Enter ${t('footer.back')}` : `B ${t('footer.back')}`;
+  if (hint) hint.innerText = usingKeyboard ? `Esc / Enter — ${t('footer.back')}` : `B — ${t('footer.back')}`;
 }
 
 function ggpCloseSlideshow() {
@@ -2640,6 +2665,8 @@ function ggpCloseSlideshow() {
   if (img) img.style.display = 'block';
   const counter = document.getElementById('ggp-ss-counter');
   if (counter) counter.style.display = 'block';
+  const header = document.getElementById('ggp-trailer-header');
+  if (header) header.style.display = 'none';
   ggpTrailerMode = false;
   document.getElementById('ggp-slideshow').classList.add('hidden');
 }

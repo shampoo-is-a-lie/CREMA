@@ -190,10 +190,15 @@
     /* === GALLERY GAMEPAGE === */
     #ggp-screen { padding: 0; }
     /* Hero: natural proportions (height driven by image aspect ratio) */
-    #ggp-hero { position: relative; background: #000; flex-shrink: 0; }
+    #ggp-hero { position: relative; background: var(--bg_menu); flex-shrink: 0; min-height: 220px; }
     #ggp-hero-img { display: block; width: 100%; height: auto; max-height: 56vh; object-fit: contain; }
     #ggp-hero-grad { position: absolute; bottom: 0; left: 0; width: 100%; height: 55%; background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 60%, transparent 100%); z-index: 1; pointer-events: none; }
     #ggp-logo-img { position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%); z-index: 2; max-width: 60%; max-height: 52%; object-fit: contain; display: none; filter: drop-shadow(0 5px 24px rgba(0,0,0,0.95)); }
+    /* No-art placeholder in hero */
+    #ggp-hero-placeholder { position: absolute; inset: 0; z-index: 2; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+    #ggp-hero-placeholder .ph-icon { font-size: 52px; color: var(--border_solid); line-height: 1; }
+    #ggp-hero-placeholder .ph-title { font-size: 28px; font-weight: 900; color: var(--text_dim); letter-spacing: 3px; text-align: center; }
+    #ggp-hero-placeholder .ph-hint { font-size: 13px; color: var(--text_dim); letter-spacing: 2px; opacity: 0.7; }
     /* Action row overlaid at bottom of hero */
     #ggp-action-row { position: absolute; bottom: 0; left: 0; right: 0; z-index: 3; display: flex; align-items: center; gap: 12px; padding: 18px 40px; }
     #ggp-store-badge { width: 28px; height: 28px; background-color: rgba(255,255,255,0.82); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8)); flex-shrink: 0; margin-right: 12px; display: none; }
@@ -224,6 +229,10 @@
     /* Right column: cover + stats */
     #ggp-cover { width: 220px; flex-shrink: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border_solid); background: var(--bg_panel); align-self: flex-start; }
     #ggp-media-img { width: 100%; display: block; aspect-ratio: 2/3; object-fit: cover; }
+    /* No-cover placeholder */
+    #ggp-cover-placeholder { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; aspect-ratio: 2/3; color: var(--text_dim); }
+    #ggp-cover-placeholder .ph-icon { font-size: 38px; opacity: 0.4; }
+    #ggp-cover-placeholder .ph-label { font-size: 11px; font-weight: 900; letter-spacing: 3px; }
     #ggp-right { width: 274px; flex-shrink: 0; }
     #ggp-stats-panel { background: var(--bg_panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
     #ggp-stats-row { display: flex; flex-direction: column; }
@@ -234,12 +243,17 @@
     #ggp-extra { font-size: 11px; color: var(--text_dim); padding-top: 8px; margin-top: 2px; border-top: 1px solid var(--border); line-height: 1.65; }
     #ggp-extra .similar-link { color: var(--accent); cursor: pointer; text-decoration: underline; text-decoration-color: var(--border_solid); text-underline-offset: 2px; }
     #ggp-extra .similar-link:hover { opacity: 0.75; }
-    /* Fullscreen slideshow modal */
-    #ggp-slideshow { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.94); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+    /* Fullscreen slideshow + trailer modal */
+    #ggp-slideshow { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); backdrop-filter: blur(10px); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
     #ggp-slideshow.hidden { display: none; }
-    #ggp-ss-img { max-width: 90%; max-height: 78vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); }
-    #ggp-ss-counter { font-size: 18px; font-weight: 900; color: var(--text_dim); letter-spacing: 3px; }
-    #ggp-ss-hint { font-size: 15px; color: var(--text_dim); letter-spacing: 2px; }
+    #ggp-ss-img { max-width: 90%; max-height: 80vh; object-fit: contain; border-radius: 10px; box-shadow: 0 10px 50px rgba(0,0,0,0.9); }
+    #ggp-ss-counter { font-size: 17px; font-weight: 900; color: var(--text_dim); letter-spacing: 3px; }
+    #ggp-ss-hint { font-size: 14px; color: var(--text_dim); letter-spacing: 2px; }
+    /* Trailer popup — near-fullscreen video */
+    #ggp-trailer-header { display: none; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+    #ggp-trailer-label { font-size: 11px; font-weight: 900; color: var(--accent); letter-spacing: 5px; text-transform: uppercase; }
+    #ggp-trailer-game-name { font-size: 24px; font-weight: 900; color: #fff; letter-spacing: 2px; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+    #ggp-trailer-vid { max-width: calc(100% - 60px); max-height: calc(100% - 120px); border-radius: 10px; box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 20px 60px rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.07); }
 
     /* === START SCREEN MODES === */
     #start-screen { padding: 0; }
@@ -487,6 +501,11 @@
       <div id="ggp-hero">
         <img id="ggp-hero-img" src="" alt="">
         <div id="ggp-hero-grad"></div>
+        <div id="ggp-hero-placeholder">
+          <div class="ph-icon">◈</div>
+          <div class="ph-title" id="ggp-hero-ph-name"></div>
+          <div class="ph-hint">SELECT → SCRAPING ENGINE</div>
+        </div>
         <img id="ggp-logo-img" src="" alt="">
         <div id="ggp-action-row">
           <div id="ggp-store-badge"></div>
@@ -498,7 +517,13 @@
       </div>
       <div id="ggp-scroll">
         <div id="ggp-content">
-          <div id="ggp-cover"><img id="ggp-media-img" src="" alt=""></div>
+          <div id="ggp-cover">
+            <img id="ggp-media-img" src="" alt="">
+            <div id="ggp-cover-placeholder">
+              <span class="ph-icon">◈</span>
+              <span class="ph-label">NO COVER ART</span>
+            </div>
+          </div>
           <div id="ggp-left">
             <div id="ggp-ss-banner" class="ggp-ss-banner" style="display:none;">
               <img id="ggp-ss-kb-img" class="ggp-ss-kb-img" src="" alt="">
@@ -517,8 +542,12 @@
         </div>
       </div>
       <div id="ggp-slideshow" class="hidden">
+        <div id="ggp-trailer-header">
+          <div id="ggp-trailer-label">🎬 TRAILER</div>
+          <div id="ggp-trailer-game-name"></div>
+        </div>
         <img id="ggp-ss-img" src="" alt="">
-        <video id="ggp-trailer-vid" playsinline style="display:none; max-width:90%; max-height:80vh; border-radius:8px; box-shadow:0 10px 40px rgba(0,0,0,0.8);"></video>
+        <video id="ggp-trailer-vid" playsinline style="display:none;"></video>
         <div id="ggp-ss-counter"></div>
         <div id="ggp-ss-hint"></div>
       </div>
