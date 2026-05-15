@@ -23,6 +23,8 @@
     "history": "HISTÓRICO",
     "about": "SOBRE O CREMA",
     "quit": "SAIR DO CREMA",
+    "clock_on": "RELÓGIO: ATIVO",
+    "clock_off": "RELÓGIO: INATIVO",
     "language": "IDIOMA"
   },
   "section": {
