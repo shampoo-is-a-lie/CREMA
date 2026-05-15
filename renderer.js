@@ -1259,7 +1259,9 @@ function updateCategorySelection() {
 function transitionToMain() {
   if ((audioCfg.browseMode || 'LIST') === 'GALLERY') { transitionToGallery(); return; }
   gameState = 'MAIN';
-  document.getElementById('start-screen').classList.add('hidden');
+  ['start-screen', 'gallery-screen', 'ggp-screen'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.classList.add('hidden');
+  });
   document.getElementById('main-screen').classList.remove('hidden');
   const catName = categories[currentCategoryIndex];
   const safeCatName = catName.toLowerCase().replace(/ /g, '_');
