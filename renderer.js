@@ -4,7 +4,7 @@ window.onerror = function(message, source, lineno) {
 };
 
 let baseDir = ""; let sfxNav, sfxSelect, sfxBack; let bgmAudio = new Audio();
-let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "AMBIENT", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "STATIC", browseMode: "LIST", clock: true };
+let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "AMBIENT", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "STATIC", browseMode: "LIST", clock: false };
 let customPlaylist = []; let customIndex = 0; let isCustom = false;
 let npTimeout = null;
 
@@ -206,7 +206,7 @@ function renderFooters() {
 
 async function initAudio() {
   let rawCfg = await window.api.getAudioConfig();
-  if (rawCfg) { audioCfg.bgm = rawCfg.bgm !== undefined ? rawCfg.bgm : true; audioCfg.sfx = rawCfg.sfx !== undefined ? rawCfg.sfx : true; audioCfg.vol = rawCfg.vol !== undefined ? rawCfg.vol : 0.3; audioCfg.bgm_mode = rawCfg.bgm_mode !== undefined ? rawCfg.bgm_mode : "AMBIENT"; audioCfg.screensaver = rawCfg.screensaver !== undefined ? rawCfg.screensaver : "CN WALLPAPERS"; audioCfg.screensaverDelay = rawCfg.screensaverDelay !== undefined ? rawCfg.screensaverDelay : 3; audioCfg.gamepadLayout = rawCfg.gamepadLayout !== undefined ? rawCfg.gamepadLayout : "XBOX"; audioCfg.wakeMethod = rawCfg.wakeMethod !== undefined ? rawCfg.wakeMethod : "START + SELECT"; if (rawCfg.theme && THEMES[rawCfg.theme]) { activeTheme = rawCfg.theme; audioCfg.theme = rawCfg.theme; } audioCfg.startScreenMode = rawCfg.startScreenMode || 'STATIC'; audioCfg.browseMode = rawCfg.browseMode || 'LIST'; audioCfg.clock = rawCfg.clock !== undefined ? rawCfg.clock : true; }
+  if (rawCfg) { audioCfg.bgm = rawCfg.bgm !== undefined ? rawCfg.bgm : true; audioCfg.sfx = rawCfg.sfx !== undefined ? rawCfg.sfx : true; audioCfg.vol = rawCfg.vol !== undefined ? rawCfg.vol : 0.3; audioCfg.bgm_mode = rawCfg.bgm_mode !== undefined ? rawCfg.bgm_mode : "AMBIENT"; audioCfg.screensaver = rawCfg.screensaver !== undefined ? rawCfg.screensaver : "CN WALLPAPERS"; audioCfg.screensaverDelay = rawCfg.screensaverDelay !== undefined ? rawCfg.screensaverDelay : 3; audioCfg.gamepadLayout = rawCfg.gamepadLayout !== undefined ? rawCfg.gamepadLayout : "XBOX"; audioCfg.wakeMethod = rawCfg.wakeMethod !== undefined ? rawCfg.wakeMethod : "START + SELECT"; if (rawCfg.theme && THEMES[rawCfg.theme]) { activeTheme = rawCfg.theme; audioCfg.theme = rawCfg.theme; } audioCfg.startScreenMode = rawCfg.startScreenMode || 'STATIC'; audioCfg.browseMode = rawCfg.browseMode || 'LIST'; audioCfg.clock = rawCfg.clock === true; }
   updateClockVisibility();
   baseDir = await window.api.getBaseDir();
   const bp = `assets/sounds`;
@@ -215,7 +215,7 @@ async function initAudio() {
 }
 function updateClockVisibility() {
   const clk = document.getElementById('global-clock');
-  if (clk) clk.style.display = audioCfg.clock !== false ? 'block' : 'none';
+  if (clk) clk.classList.toggle('clock-visible', audioCfg.clock === true);
 }
 
 async function applyBgmMode() { if (!hasBooted) return; bgmAudio.pause(); if (!audioCfg.bgm || audioCfg.bgm_mode === "OFF") return; bgmAudio.volume = audioCfg.vol; if (audioCfg.bgm_mode === "CUSTOM") { isCustom = true; customPlaylist = await window.api.getCustomMusic(); if (customPlaylist.length > 0) { customPlaylist.sort(() => Math.random() - 0.5); customIndex = 0; if (!isVideoActive()) playNextCustom(); } } else { isCustom = false; const stdPath = await window.api.getStandardBgm(audioCfg.bgm_mode); if (stdPath) { bgmAudio.src = stdPath; bgmAudio.loop = true; if (!isVideoActive()) bgmAudio.play().catch(e=>{}); } } }
@@ -988,7 +988,7 @@ function executeOverlayAction() {
     else if (action === t('menu.wake_method')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openWakeMethodMenu(); }
     else if (action === t('menu.color_scheme')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openThemeCategoryMenu(); }
     else if (action === t('menu.screensaver')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openScreensaverMenu(); }
-    else if (action === t('menu.clock_on') || action === t('menu.clock_off')) { audioCfg.clock = audioCfg.clock !== false ? false : true; window.api.saveAudioConfig(audioCfg); updateClockVisibility(); openOverlay("MAIN_MENU"); }
+    else if (action === t('menu.clock_on') || action === t('menu.clock_off')) { audioCfg.clock = audioCfg.clock !== true; window.api.saveAudioConfig(audioCfg); updateClockVisibility(); openOverlay("MAIN_MENU"); }
     else if (action === t('menu.history')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openHistoryMenu(); }
     else if (action === t('menu.start_screen')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openStartScreenMenu(); }
     else if (action === t('browse.mode')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openBrowseModeMenu(); }

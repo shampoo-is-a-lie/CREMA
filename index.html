@@ -23,6 +23,8 @@
     .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: clip; opacity: 1; transition: opacity 0.3s ease-in-out, filter 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
     .hidden { opacity: 0; pointer-events: none; z-index: -1; }
     .is-blurred { filter: blur(15px); pointer-events: none; }
+    #global-clock { position: absolute; top: 30px; right: 50px; font-size: 24px; font-weight: bold; color: var(--text_dim); z-index: 2000; letter-spacing: 2px; text-shadow: 0 2px 10px rgba(0,0,0,0.95); display: none; }
+    #global-clock.clock-visible { display: block; }
 
     /* === FIRST-TIME SETUP SCREEN === */
     #setup-screen { z-index: 10; background: linear-gradient(160deg, var(--bg) 0%, var(--bg_menu) 100%); }
@@ -300,7 +302,7 @@
 <body>
   <div id="app-scale-wrapper" style="width: 1920px; height: 1080px; transform-origin: top left; position: absolute; overflow: clip; left: 0; top: 0;">
 
-    <div id="global-clock" style="position: absolute; top: 30px; left: 50%; transform: translateX(-50%); font-size: 24px; font-weight: bold; color: var(--text_dim); z-index: 2000; letter-spacing: 2px; text-shadow: 0 2px 10px rgba(0,0,0,0.95);">--:--</div>
+    <div id="global-clock">--:--</div>
 
     <!-- ═══ FIRST-TIME SETUP SCREEN ═══ -->
     <div id="setup-screen" class="screen hidden">
