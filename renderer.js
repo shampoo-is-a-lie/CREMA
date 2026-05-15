@@ -2276,7 +2276,7 @@ function updateGalleryBg(game) {
     : game.CoverArt ? convertSafePath(game.CoverArt) : '';
 
   const heroImg = document.getElementById('gallery-hero-img');
-  if (heroImg && src) heroImg.src = src;
+  if (heroImg) { heroImg.src = src; heroImg.style.display = src ? 'block' : 'none'; }
 
   const heroName = document.getElementById('gallery-hero-game-name');
   if (heroName) heroName.innerText = game.Game;
@@ -2381,7 +2381,7 @@ function updateGalleryGamepageContent(game) {
     : game.Screenshot ? convertSafePath(String(game.Screenshot).split('|')[0])
     : game.CoverArt ? convertSafePath(game.CoverArt) : '';
   const heroImg = document.getElementById('ggp-hero-img');
-  if (heroImg) { heroImg.src = heroSrc; }
+  if (heroImg) { heroImg.src = heroSrc; heroImg.style.display = heroSrc ? 'block' : 'none'; }
 
   // Logo or title text
   const logoEl = document.getElementById('ggp-logo-img');
