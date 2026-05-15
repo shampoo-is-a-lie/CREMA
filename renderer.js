@@ -4,7 +4,7 @@ window.onerror = function(message, source, lineno) {
 };
 
 let baseDir = ""; let sfxNav, sfxSelect, sfxBack; let bgmAudio = new Audio();
-let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "AMBIENT", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "STATIC", browseMode: "LIST" };
+let audioCfg = { bgm: true, sfx: true, vol: 0.3, bgm_mode: "AMBIENT", theme: "CREMA (DEFAULT)", screensaver: "CN WALLPAPERS", screensaverDelay: 3, gamepadLayout: "XBOX", wakeMethod: "START + SELECT", startScreenMode: "STATIC", browseMode: "LIST", clock: true };
 let customPlaylist = []; let customIndex = 0; let isCustom = false;
 let npTimeout = null;
 
@@ -988,7 +988,7 @@ function executeOverlayAction() {
     else if (action === t('menu.wake_method')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openWakeMethodMenu(); }
     else if (action === t('menu.color_scheme')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openThemeCategoryMenu(); }
     else if (action === t('menu.screensaver')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openScreensaverMenu(); }
-    else if (action === t('menu.clock_on') || action === t('menu.clock_off')) { audioCfg.clock = !audioCfg.clock; window.api.saveAudioConfig(audioCfg); updateClockVisibility(); openOverlay("MAIN_MENU"); }
+    else if (action === t('menu.clock_on') || action === t('menu.clock_off')) { audioCfg.clock = audioCfg.clock !== false ? false : true; window.api.saveAudioConfig(audioCfg); updateClockVisibility(); openOverlay("MAIN_MENU"); }
     else if (action === t('menu.history')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openHistoryMenu(); }
     else if (action === t('menu.start_screen')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openStartScreenMenu(); }
     else if (action === t('browse.mode')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openBrowseModeMenu(); }
