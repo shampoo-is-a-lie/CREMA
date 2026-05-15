@@ -24,6 +24,33 @@
     .hidden { opacity: 0; pointer-events: none; z-index: -1; }
     .is-blurred { filter: blur(15px); pointer-events: none; }
 
+    /* === FIRST-TIME SETUP SCREEN === */
+    #setup-screen { z-index: 10; background: linear-gradient(160deg, var(--bg) 0%, var(--bg_menu) 100%); }
+    #setup-topbar { display: flex; align-items: center; justify-content: space-between; padding: 36px 70px 0; flex-shrink: 0; }
+    #setup-brand { font-size: 13px; font-weight: 900; color: var(--accent); letter-spacing: 6px; text-transform: uppercase; opacity: 0.8; }
+    #setup-dots { display: flex; gap: 10px; align-items: center; }
+    .setup-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border_solid); transition: background 0.35s, transform 0.35s, width 0.35s; }
+    .setup-dot.active { background: var(--accent); transform: scale(1.2); width: 28px; border-radius: 5px; }
+    #setup-header { padding: 28px 70px 0; flex-shrink: 0; }
+    #setup-phase-label { font-size: 12px; font-weight: 900; color: var(--text_dim); letter-spacing: 4px; margin-bottom: 10px; }
+    #setup-title { font-size: 44px; font-weight: 900; color: var(--text_main); line-height: 1.1; letter-spacing: 1px; }
+    #setup-subtitle { font-size: 17px; color: var(--text_sec); margin-top: 10px; }
+    #setup-cards { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 22px; padding: 28px 70px 0; }
+    .setup-card { display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; border: 3px solid var(--border_solid); background: var(--bg_menu); flex: 1; max-width: 700px; cursor: pointer; transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+    .setup-card.selected { border-color: var(--accent); transform: scale(1.03) translateY(-6px); box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 40%, transparent), 0 20px 50px rgba(0,0,0,0.7); }
+    .setup-card-imgwrap { position: relative; aspect-ratio: 16/9; background: var(--bg_panel); overflow: hidden; flex-shrink: 0; }
+    .setup-card-imgwrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .setup-card-imgwrap .setup-img-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text_dim); font-size: 13px; letter-spacing: 3px; font-weight: 900; }
+    .setup-card-check { position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: rgba(0,0,0,0.85); font-size: 14px; font-weight: 900; display: none; align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+    .setup-card.selected .setup-card-check { display: flex; }
+    .setup-card-body { padding: 18px 20px 20px; border-top: 1px solid var(--border); }
+    .setup-card-name { font-size: 17px; font-weight: 900; color: var(--text_main); letter-spacing: 2px; margin-bottom: 7px; transition: color 0.2s; }
+    .setup-card.selected .setup-card-name { color: var(--accent); }
+    .setup-card-desc { font-size: 13px; color: var(--text_sec); line-height: 1.65; }
+    #setup-footer { flex-shrink: 0; padding: 18px 70px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    #setup-footer-left { font-size: 18px; color: var(--text_dim); }
+    #setup-footer-right { display: flex; gap: 30px; font-size: 18px; color: var(--text_sec); align-items: center; }
+
     #splash-screen { justify-content: center; align-items: center; z-index: 50;}
     .splash-top { position: absolute; top: 100px; color: var(--text_dim); letter-spacing: 10px; font-weight: bold; font-size: 24px; }
     .splash-center { display: flex; justify-content: center; align-items: center; width: 450px; height: 450px; border-radius: 50%; background-color: var(--border_solid); position: relative; }
@@ -274,6 +301,24 @@
   <div id="app-scale-wrapper" style="width: 1920px; height: 1080px; transform-origin: top left; position: absolute; overflow: clip; left: 0; top: 0;">
 
     <div id="global-clock" style="position: absolute; top: 30px; right: 85px; font-size: 24px; font-weight: bold; color: var(--text_dim); z-index: 2000; letter-spacing: 2px; text-shadow: 0 2px 10px rgba(0,0,0,0.95);">--:--</div>
+
+    <!-- ═══ FIRST-TIME SETUP SCREEN ═══ -->
+    <div id="setup-screen" class="screen hidden">
+      <div id="setup-topbar">
+        <div id="setup-brand">CAFE NEUROTICO: CREMA</div>
+        <div id="setup-dots"><div class="setup-dot active"></div><div class="setup-dot"></div></div>
+      </div>
+      <div id="setup-header">
+        <div id="setup-phase-label">STEP 1 OF 2</div>
+        <div id="setup-title"></div>
+        <div id="setup-subtitle"></div>
+      </div>
+      <div id="setup-cards"></div>
+      <div id="setup-footer">
+        <div id="setup-footer-left"></div>
+        <div id="setup-footer-right"></div>
+      </div>
+    </div>
 
     <div id="splash-screen" class="screen">
       <div class="splash-top">CAFE NEUROTICO GAME MANAGER:</div>

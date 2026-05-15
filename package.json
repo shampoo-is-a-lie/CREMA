@@ -45,7 +45,8 @@
       "index.html",
       "i18n.js",
       "locales/**/*",
-      "assets/**/*"
+      "assets/**/*",
+      "assets/setup/**/*"
     ],
     "extraResources": [
       {

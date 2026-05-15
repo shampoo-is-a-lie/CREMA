@@ -31,6 +31,10 @@ let ggpSlideshowScreens = [];
 let ggpSlideshowIndex = 0;
 let ggpSsBannerInterval = null;
 let ggpTrailerAvailable = false;
+// ── SETUP SCREEN STATE ────────────────────────────────────────────────────
+let setupPhase = 1;        // 1 = start screen, 2 = browse mode
+let setupStartIndex = 0;   // 0=STATIC 1=CAROUSEL 2=GRID
+let setupBrowseIndex = 0;  // 0=LIST 1=GALLERY
 // ───────────────────────────────────────────────────────────────────────────
 function tCat(name) { const k = CAT_KEYS[name]; return k ? t(k) : name; }
 
@@ -292,6 +296,114 @@ function handleSSAction(action) {
 
 function setDebug(msg, show = true) { const dbg = document.getElementById('media-debug'); if(dbg){ dbg.innerText = msg; dbg.style.display = show ? "block" : "none"; } }
 
+// ══════════════════════════════════════════════════════════════════════════
+// FIRST-TIME SETUP SCREEN
+// ══════════════════════════════════════════════════════════════════════════
+
+function setupOptions() {
+  return {
+    start: [
+      { id: 'STATIC',   img: 'assets/setup/start_static.png',   name: t('start_screen.list'),     desc: 'Navigate your library in a clean, vertical list. Cover art, screenshots and stats appear instantly on the right as you scroll.' },
+      { id: 'CAROUSEL', img: 'assets/setup/start_carousel.png', name: t('start_screen.carousel'), desc: 'One game fills the screen at a time. Bold, immersive, built for a couch and a controller. The true console experience.' },
+      { id: 'GRID',     img: 'assets/setup/start_grid.png',     name: t('start_screen.grid'),     desc: 'Your cover art in a mosaic grid. Navigate in any direction through your entire collection at a glance.' },
+    ],
+    browse: [
+      { id: 'LIST',    img: 'assets/setup/browse_list.png',    name: t('browse.list'),    desc: 'A focused side-by-side layout — game list on the left, rich details, screenshots and metadata on the right.' },
+      { id: 'GALLERY', img: 'assets/setup/browse_gallery.png', name: t('browse.gallery'), desc: 'An immersive cover art grid with a hero banner at the top. Select any game to open its full dedicated gamepage.' },
+    ]
+  };
+}
+
+function showSetupScreen() {
+  gameState = 'SETUP';
+  setupPhase = 1;
+  setupStartIndex = 0;
+  setupBrowseIndex = 0;
+  document.getElementById('splash-screen').classList.add('hidden');
+  document.getElementById('setup-screen').classList.remove('hidden');
+  renderSetupScreen();
+}
+
+function renderSetupScreen() {
+  const opts = setupOptions();
+  const isPhase1 = setupPhase === 1;
+  const options = isPhase1 ? opts.start : opts.browse;
+  const selectedIdx = isPhase1 ? setupStartIndex : setupBrowseIndex;
+
+  // Progress dots
+  document.querySelectorAll('.setup-dot').forEach((dot, i) => dot.classList.toggle('active', i === setupPhase - 1));
+  document.getElementById('setup-phase-label').innerText = `STEP ${setupPhase} OF 2`;
+
+  // Title / subtitle
+  document.getElementById('setup-title').innerText = isPhase1
+    ? 'CHOOSE YOUR START SCREEN'
+    : 'HOW WOULD YOU LIKE TO BROWSE?';
+  document.getElementById('setup-subtitle').innerText = isPhase1
+    ? 'Select the view that greets you every time CREMA opens.'
+    : 'Pick your preferred way to explore your game library.';
+
+  // Cards
+  const cardsEl = document.getElementById('setup-cards');
+  cardsEl.innerHTML = '';
+  options.forEach((opt, i) => {
+    const card = document.createElement('div');
+    card.className = 'setup-card' + (i === selectedIdx ? ' selected' : '');
+    card.innerHTML =
+      `<div class="setup-card-imgwrap">
+        <img src="${convertSafePath(opt.img)}" alt="${opt.name}" onerror="this.style.display='none'">
+        <div class="setup-img-ph">${opt.name}</div>
+        <div class="setup-card-check">✓</div>
+      </div>
+      <div class="setup-card-body">
+        <div class="setup-card-name">${opt.name}</div>
+        <div class="setup-card-desc">${opt.desc}</div>
+      </div>`;
+    cardsEl.appendChild(card);
+  });
+
+  // Footer hints
+  const kb = usingKeyboard;
+  const left  = kb ? getKey('←') + getKey('→') : getBtn('dpad_left') + getBtn('dpad_right');
+  const back  = kb ? getKey('Esc') : getMappedBtn('EAST');
+  const ok    = kb ? getKey('Enter') : getMappedBtn('SOUTH');
+  document.getElementById('setup-footer-left').innerHTML =
+    isPhase1 ? '' : `${back} ${t('footer.back')}`;
+  document.getElementById('setup-footer-right').innerHTML =
+    `${left} ${t('footer.navigate')} &nbsp;&nbsp; ${ok} ${isPhase1 ? t('footer.select') : 'CONFIRM &amp; START'}`;
+}
+
+function handleSetupInput(action) {
+  const isPhase1 = setupPhase === 1;
+  const maxIdx = isPhase1 ? 2 : 1;
+  if (action === 'LEFT') {
+    if (isPhase1) setupStartIndex = Math.max(0, setupStartIndex - 1);
+    else setupBrowseIndex = Math.max(0, setupBrowseIndex - 1);
+    playSound(sfxNav); renderSetupScreen();
+  } else if (action === 'RIGHT') {
+    if (isPhase1) setupStartIndex = Math.min(maxIdx, setupStartIndex + 1);
+    else setupBrowseIndex = Math.min(maxIdx, setupBrowseIndex + 1);
+    playSound(sfxNav); renderSetupScreen();
+  } else if (action === 'BACK' && setupPhase === 2) {
+    setupPhase = 1; playSound(sfxBack); renderSetupScreen();
+  } else if (action === 'ACCEPT') {
+    if (setupPhase === 1) { setupPhase = 2; playSound(sfxSelect); renderSetupScreen(); }
+    else { completeSetup(); }
+  }
+}
+
+async function completeSetup() {
+  playSound(sfxSelect);
+  const startModes = ['STATIC', 'CAROUSEL', 'GRID'];
+  const browseModes = ['LIST', 'GALLERY'];
+  audioCfg.startScreenMode = startModes[setupStartIndex];
+  audioCfg.browseMode = browseModes[setupBrowseIndex];
+  window.api.saveAudioConfig(audioCfg);
+  window.api.setSetting('setup_complete', '1');
+  document.getElementById('setup-screen').classList.add('hidden');
+  transitionToStart();
+  resetIdleTimer();
+}
+
 async function boot() {
   currentLang = await window.api.getSetting('language') || 'en';
   strings = await window.api.getStrings(currentLang);
@@ -301,7 +413,7 @@ async function boot() {
   const res = await window.api.getGames(); allGames = (res.games || []).filter(g => g.Game && String(g.Game).trim() !== "");
   for (let g of allGames) { if (g.Screenshot && String(g.Screenshot).trim() !== "") { let paths = String(g.Screenshot).split('|').filter(s => s.trim() !== ""); paths.forEach(p => availableScreenshots.push({ path: p, game: g })); } }
   let prog = 0; const bar = document.getElementById('splash-bar'); const txt = document.getElementById('splash-text');
-  const l = setInterval(() => { prog += 2; bar.style.width = `${prog}%`; if (prog === 30) txt.innerText = t('status.grinding'); if (prog === 60) txt.innerText = t('status.brewing'); if (prog >= 100) { clearInterval(l); document.querySelector('.splash-logo').classList.add('boot-anim'); setTimeout(() => { hasBooted = true; transitionToStart(); applyBgmMode(); resetIdleTimer(); }, 800); } }, 30);
+  const l = setInterval(() => { prog += 2; bar.style.width = `${prog}%`; if (prog === 30) txt.innerText = t('status.grinding'); if (prog === 60) txt.innerText = t('status.brewing'); if (prog >= 100) { clearInterval(l); document.querySelector('.splash-logo').classList.add('boot-anim'); setTimeout(async () => { hasBooted = true; const setupDone = await window.api.getSetting('setup_complete'); if (!setupDone) { applyBgmMode(); showSetupScreen(); } else { transitionToStart(); applyBgmMode(); resetIdleTimer(); } }, 800); } }, 30);
   requestAnimationFrame(pollGamepad); window.api.onDownloadProgress(updateDownloadProgressBar); window.api.onScrapeProgress(updateScrapeProgressBar);
 }
 
@@ -450,6 +562,7 @@ function jumpPages(direction) {
 }
 
 function handleInput(action) {
+  if (gameState === 'SETUP') { handleSetupInput(action); return; }
   if (action === 'L3' && isCustom && audioCfg.bgm && audioCfg.bgm_mode === "CUSTOM") { if (bgmAudio.currentTime > 3) { bgmAudio.currentTime = 0; } else { playNextCustom(true); } return; }
   if (action === 'R3' && isCustom && audioCfg.bgm && audioCfg.bgm_mode === "CUSTOM") { playNextCustom(); return; }
 
