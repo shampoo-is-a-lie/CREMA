@@ -2206,35 +2206,58 @@ function galleryGamepageNavigate(delta) {
 }
 
 function updateGalleryGamepageContent(game) {
-  // Hero image
+  // Hero image (Ken Burns plays automatically via CSS)
   const heroSrc = game.HeroArt ? convertSafePath(game.HeroArt)
     : game.Screenshot ? convertSafePath(String(game.Screenshot).split('|')[0])
     : game.CoverArt ? convertSafePath(game.CoverArt) : '';
   const heroImg = document.getElementById('ggp-hero-img');
   if (heroImg) { heroImg.src = heroSrc; heroImg.style.display = heroSrc ? 'block' : 'none'; }
 
-  // Title
-  document.getElementById('ggp-title').innerText = game.Game || '';
+  // Logo — if present: show centered logo, hide text title; if absent: show text title
+  const logoEl = document.getElementById('ggp-logo-img');
+  const titleEl = document.getElementById('ggp-title');
+  const logoSrc = game.Logo ? convertSafePath(game.Logo) : '';
+  if (logoEl) { logoEl.src = logoSrc; logoEl.style.display = logoSrc ? 'block' : 'none'; }
+  if (titleEl) { titleEl.innerText = game.Game || ''; titleEl.style.display = logoSrc ? 'none' : 'block'; }
+
+  // Store badge in hero bottom-left
+  const storeBadgeEl = document.getElementById('ggp-store-badge');
+  if (storeBadgeEl) {
+    const storeLogo = getGalleryStoreLogo(game.Store);
+    if (storeLogo) {
+      storeBadgeEl.style.webkitMaskImage = `url('${convertSafePath(storeLogo)}')`;
+      storeBadgeEl.style.display = 'block';
+    } else {
+      storeBadgeEl.style.display = 'none';
+    }
+  }
 
   // Badges (fav, want, proton)
   updateGalleryGamepageBadges(game);
 
-  // Cover in media column
+  // Cover art in right column
   const coverEl = document.getElementById('ggp-media-img');
   const coverSrc = game.CoverArt ? convertSafePath(game.CoverArt) : '';
   if (coverEl) { coverEl.src = coverSrc; coverEl.style.display = coverSrc ? 'block' : 'none'; }
+
+  // Screenshot media area: show label/hint
+  galleryScreenshots = game.Screenshot ? String(game.Screenshot).split('|').filter(s => s.trim()) : [];
+  galleryScreenIndex = 0;
+  const labelEl = document.getElementById('ggp-media-label');
+  if (labelEl) labelEl.innerText = galleryScreenshots.length > 0 ? t('html.stat_screenshots') : t('empty.no_media');
   document.getElementById('ggp-media-hint').innerText = usingKeyboard ? `[X] ${t('footer.media')}` : '';
 
-  // Stats row
+  // Stats — vertical list matching CNGM sidebar
   const statsEl = document.getElementById('ggp-stats-row');
   if (statsEl) {
     const stats = [
-      { label: t('html.stat_developer'), val: game.DEV },
-      { label: t('html.stat_released'), val: game.RELEASED },
-      { label: t('html.stat_genre'), val: game.GENRE ? String(game.GENRE).split(',')[0].trim() : '' },
-      { label: t('html.stat_hltb'), val: game.HLTB_Main },
-      { label: t('html.stat_proton'), val: game.ProtonTier },
+      { label: t('html.stat_released'),   val: game.RELEASED },
+      { label: t('html.stat_developer'),  val: game.DEV },
+      { label: t('html.stat_publisher'),  val: game.PUBLISHER },
+      { label: t('html.stat_genre'),      val: game.GENRE ? String(game.GENRE).split(',')[0].trim() : '' },
+      { label: t('html.stat_hltb'),       val: game.HLTB_Main },
       { label: t('html.stat_metacritic'), val: game.METACRITIC },
+      { label: t('html.stat_proton'),     val: game.ProtonTier },
     ].filter(s => s.val && String(s.val).trim() && String(s.val).trim() !== '--');
     statsEl.innerHTML = stats.map(s =>
       `<div class="ggp-stat"><div class="ggp-stat-label">${s.label}</div><div class="ggp-stat-val">${s.val}</div></div>`
@@ -2242,15 +2265,14 @@ function updateGalleryGamepageContent(game) {
   }
 
   // Description
-  const desc = getLocalizedDescription(game) || t('empty.no_desc');
-  document.getElementById('ggp-desc').innerText = desc;
+  document.getElementById('ggp-desc').innerText = getLocalizedDescription(game) || t('empty.no_desc');
 
-  // Similar games + series
+  // Series + Similar games at bottom of stats panel
   const extraEl = document.getElementById('ggp-extra');
   if (extraEl) {
     let extraHtml = '';
-    if (game.Franchise && game.Franchise.trim()) {
-      extraHtml += `<span style="color:var(--text_sec)">${t('html.stat_series')}: </span><span>${game.Franchise}</span>  `;
+    if (game.Franchise && game.Franchise.trim() && game.Franchise !== '--') {
+      extraHtml += `<div><span style="color:var(--accent);font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;">${t('html.stat_series')}</span><br>${game.Franchise}</div>`;
     }
     if (game.SimilarGames && game.SimilarGames.trim() && game.SimilarGames !== '--') {
       const names = game.SimilarGames.split(',').map(n => n.trim()).filter(Boolean);
@@ -2260,9 +2282,10 @@ function updateGalleryGamepageContent(game) {
           ? `<span class="similar-link" data-id="${match.id}">${name}</span>`
           : `<span>${name}</span>`;
       }).join(', ');
-      extraHtml += `<br><span style="color:var(--text_sec)">${t('html.stat_similar')}: </span>${links}`;
+      extraHtml += `<div style="margin-top:6px;"><span style="color:var(--accent);font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;">${t('html.stat_similar')}</span><br>${links}</div>`;
     }
     extraEl.innerHTML = extraHtml;
+    extraEl.style.display = extraHtml ? 'block' : 'none';
     extraEl.querySelectorAll('.similar-link').forEach(el => {
       el.addEventListener('click', () => {
         const g = allGames.find(g => g.id === parseInt(el.dataset.id));
@@ -2270,10 +2293,6 @@ function updateGalleryGamepageContent(game) {
       });
     });
   }
-
-  // Screenshots for media cycling
-  galleryScreenshots = game.Screenshot ? String(game.Screenshot).split('|').filter(s => s.trim()) : [];
-  galleryScreenIndex = 0;
 }
 
 function updateGalleryGamepageBadges(game) {
@@ -2289,9 +2308,9 @@ function updateGalleryGamepageBadges(game) {
 }
 
 function cycleGalleryMedia() {
-  const coverEl = document.getElementById('ggp-media-img');
   const ssEl = document.getElementById('ggp-media-ss');
   const vidEl = document.getElementById('ggp-media-vid');
+  const labelEl = document.getElementById('ggp-media-label');
   const game = galleryCurrentGame;
   if (!game) return;
 
@@ -2300,7 +2319,7 @@ function cycleGalleryMedia() {
   if (galleryMediaMode === 'cover') {
     if (galleryScreenshots.length > 0) {
       galleryMediaMode = 'screenshot';
-      coverEl.style.display = 'none';
+      if (labelEl) labelEl.style.display = 'none';
       ssEl.style.display = 'block';
       ssEl.src = convertSafePath(galleryScreenshots[0]);
       applySsKenBurns(ssEl);
@@ -2322,14 +2341,14 @@ function cycleGalleryMedia() {
       } else {
         galleryMediaMode = 'cover';
         ssEl.style.display = 'none';
-        coverEl.style.display = 'block';
+        if (labelEl) labelEl.style.display = 'block';
       }
     });
     return;
   } else {
     galleryMediaMode = 'cover';
     vidEl.style.display = 'none';
-    coverEl.style.display = 'block';
+    if (labelEl) labelEl.style.display = 'block';
   }
   playSound(sfxNav);
 }
@@ -2340,8 +2359,9 @@ function clearGalleryMedia() {
   if (vidEl) { vidEl.pause(); vidEl.src = ''; vidEl.style.display = 'none'; }
   const ssEl = document.getElementById('ggp-media-ss');
   if (ssEl) ssEl.style.display = 'none';
-  const coverEl = document.getElementById('ggp-media-img');
-  if (coverEl) coverEl.style.display = 'block';
+  const labelEl = document.getElementById('ggp-media-label');
+  if (labelEl) labelEl.style.display = 'block';
+  galleryMediaMode = 'cover';
 }
 
 // ══════════════════════════════════════════════════════════════════════════
