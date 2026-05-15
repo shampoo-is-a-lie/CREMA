@@ -22,6 +22,14 @@ let galleryIndex = 0, galleryCatIndex = 0, galleryQuery = '';
 let galleryGames = [], galleryCurrentGame = null, galleryNumRecent = 0;
 let galleryMediaMode = 'cover'; // 'cover' | 'screenshot' | 'video'
 let galleryScreenshots = [], galleryScreenIndex = 0, galleryScreenInterval = null;
+let ggpFocus = 'BUTTONS'; // 'BUTTONS' | 'SS_BANNER' | 'CONTENT'
+let ggpButtonIndex = 0;
+let ggpButtonIds = [];   // built each time gamepage opens
+let ggpSlideshowOpen = false;
+let ggpSlideshowScreens = [];
+let ggpSlideshowIndex = 0;
+let ggpSsBannerInterval = null;
+let ggpTrailerAvailable = false;
 // ───────────────────────────────────────────────────────────────────────────
 function tCat(name) { const k = CAT_KEYS[name]; return k ? t(k) : name; }
 
@@ -152,7 +160,7 @@ function renderHardwareIcons() {
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = getMappedBtn('SOUTH'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = getMappedBtn('NORTH'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = getMappedBtn('WEST');
   const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} ${t('footer.navigate')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.play')} &nbsp;&nbsp; ${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('WEST')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
   const galF = document.getElementById('gallery-footer'); if (galF) galF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('dpad_left')}${getBtn('dpad_right')} ${t('footer.navigate')} &nbsp;&nbsp; ${getBtn('L1')}${getBtn('R1')} ${t('footer.category')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.select')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('START')} ${t('footer.menu')}`;
-  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.play')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ★ FAV &nbsp;&nbsp; ${getMappedBtn('WEST')} ${t('footer.media')} &nbsp;&nbsp; ${getBtn('L1')}${getBtn('R1')} ${t('footer.navigate')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
+  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.select')} &nbsp;&nbsp; ${getBtn('dpad_up')}${getBtn('dpad_down')} ${t('footer.navigate')} &nbsp;&nbsp; ${getBtn('L1')}${getBtn('R1')} ${t('footer.page')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
 }
 function renderFootersForKeyboard() {
   const k = getKey;
@@ -162,7 +170,7 @@ function renderFootersForKeyboard() {
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = k('Enter'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = k('Y'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = k('X');
   const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('X')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
   const galF = document.getElementById('gallery-footer'); if (galF) galF.innerHTML = `${k('↑')}${k('↓')}${k('←')}${k('→')} ${t('footer.navigate')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.category')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('M')} ${t('footer.menu')}`;
-  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Y')} ★ FAV &nbsp;&nbsp; ${k('X')} ${t('footer.media')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
+  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp; ${k('↑')}${k('↓')} ${t('footer.navigate')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.page')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
 }
 function updateJbFsHints() {
   const hint = document.getElementById('jb-fs-controls-hint'); if (!hint) return;
@@ -472,14 +480,37 @@ function handleInput(action) {
     else if (action === 'START') { openOverlay("MAIN_MENU"); }
   }
   else if (gameState === 'GALLERY_GAMEPAGE') {
-    if (action === 'ACCEPT') { if (galleryCurrentGame?.LaunchCommand) { playSound(sfxSelect); enterSleepMode(galleryCurrentGame); } }
-    else if (action === 'BACK') { playSound(sfxBack); closeGalleryGamepage(); }
+    // Slideshow mode swallows all input except close
+    if (ggpSlideshowOpen) {
+      if (action === 'LEFT') { ggpSlideshowNav(-1); }
+      else if (action === 'RIGHT') { ggpSlideshowNav(1); }
+      else if (action === 'BACK' || action === 'ACCEPT') { ggpCloseSlideshow(); }
+      return;
+    }
+    if (action === 'BACK') { playSound(sfxBack); closeGalleryGamepage(); }
+    else if (action === 'START') { openOverlay("MAIN_MENU"); }
+    else if (action === 'SELECT_BTN') { if (galleryCurrentGame) { filteredGames = galleryGames; currentGameIndex = galleryIndex; openOverlay("GAME_MENU"); } }
     else if (action === 'L1') { galleryGamepageNavigate(-1); }
     else if (action === 'R1') { galleryGamepageNavigate(1); }
-    else if (action === 'X_BUTTON') { cycleGalleryMedia(); }
-    else if (action === 'Y_BUTTON') { if (galleryCurrentGame) { playSound(sfxSelect); galleryCurrentGame.FAV = galleryCurrentGame.FAV === "YES" ? "NO" : "YES"; window.api.saveDbField({game: galleryCurrentGame.Game, field: 'FAV', value: galleryCurrentGame.FAV}); updateGalleryGamepageBadges(galleryCurrentGame); } }
-    else if (action === 'SELECT_BTN') { if (galleryCurrentGame) { filteredGames = galleryGames; currentGameIndex = galleryIndex; openOverlay("GAME_MENU"); } }
-    else if (action === 'START') { openOverlay("MAIN_MENU"); }
+    else if (ggpFocus === 'BUTTONS') {
+      if (action === 'LEFT')  { ggpMoveButton(-1); }
+      else if (action === 'RIGHT') { ggpMoveButton(1); }
+      else if (action === 'DOWN')  { ggpSetFocus(galleryScreenshots.length > 0 ? 'SS_BANNER' : 'CONTENT'); }
+      else if (action === 'ACCEPT') { ggpActivateButton(); }
+    }
+    else if (ggpFocus === 'SS_BANNER') {
+      if (action === 'UP')     { ggpSetFocus('BUTTONS'); }
+      else if (action === 'DOWN')   { ggpSetFocus('CONTENT'); }
+      else if (action === 'ACCEPT') { ggpOpenSlideshow(); }
+    }
+    else if (ggpFocus === 'CONTENT') {
+      if (action === 'UP') {
+        const s = document.getElementById('ggp-scroll');
+        if (s && s.scrollTop <= 0) ggpSetFocus(galleryScreenshots.length > 0 ? 'SS_BANNER' : 'BUTTONS');
+        else if (s) s.scrollBy({ top: -150, behavior: 'smooth' });
+      }
+      else if (action === 'DOWN') { const s = document.getElementById('ggp-scroll'); if (s) s.scrollBy({ top: 150, behavior: 'smooth' }); }
+    }
   }
   else if (gameState === 'OSK') { handleOSKInput(action); }
   else if (gameState === 'JUKEBOX' || gameState === 'JUKEBOX_OVERLAY') { handleJukeboxInput(action); }
@@ -2173,12 +2204,16 @@ function openGalleryGamepage(game) {
   gameState = 'GALLERY_GAMEPAGE';
   galleryCurrentGame = game;
   galleryMediaMode = 'cover';
-  // Also set filteredGames so existing overlays (GAME_MENU etc.) work
+  ggpFocus = 'BUTTONS';
+  ggpSlideshowOpen = false;
+  ggpButtonIndex = 0;
   filteredGames = galleryGames;
-  currentGameIndex = galleryIndex;
 
   document.getElementById('gallery-screen').classList.add('hidden');
   document.getElementById('ggp-screen').classList.remove('hidden');
+
+  const scroller = document.getElementById('ggp-scroll');
+  if (scroller) scroller.scrollTop = 0;
 
   clearGalleryMedia();
   updateGalleryGamepageContent(game);
@@ -2186,6 +2221,7 @@ function openGalleryGamepage(game) {
 }
 
 function closeGalleryGamepage() {
+  ggpSlideshowOpen = false;
   clearGalleryMedia();
   document.getElementById('ggp-screen').classList.add('hidden');
   document.getElementById('gallery-screen').classList.remove('hidden');
@@ -2206,48 +2242,53 @@ function galleryGamepageNavigate(delta) {
 }
 
 function updateGalleryGamepageContent(game) {
-  // Hero image (Ken Burns plays automatically via CSS)
+  // Hero image — natural proportions, no Ken Burns
   const heroSrc = game.HeroArt ? convertSafePath(game.HeroArt)
     : game.Screenshot ? convertSafePath(String(game.Screenshot).split('|')[0])
     : game.CoverArt ? convertSafePath(game.CoverArt) : '';
   const heroImg = document.getElementById('ggp-hero-img');
-  if (heroImg) { heroImg.src = heroSrc; heroImg.style.display = heroSrc ? 'block' : 'none'; }
+  if (heroImg) { heroImg.src = heroSrc; }
 
-  // Logo — if present: show centered logo, hide text title; if absent: show text title
+  // Logo or title text
   const logoEl = document.getElementById('ggp-logo-img');
-  const titleEl = document.getElementById('ggp-title');
   const logoSrc = game.Logo ? convertSafePath(game.Logo) : '';
   if (logoEl) { logoEl.src = logoSrc; logoEl.style.display = logoSrc ? 'block' : 'none'; }
-  if (titleEl) { titleEl.innerText = game.Game || ''; titleEl.style.display = logoSrc ? 'none' : 'block'; }
 
-  // Store badge in hero bottom-left
+  // Store badge
   const storeBadgeEl = document.getElementById('ggp-store-badge');
   if (storeBadgeEl) {
     const storeLogo = getGalleryStoreLogo(game.Store);
-    if (storeLogo) {
-      storeBadgeEl.style.webkitMaskImage = `url('${convertSafePath(storeLogo)}')`;
-      storeBadgeEl.style.display = 'block';
-    } else {
-      storeBadgeEl.style.display = 'none';
-    }
+    if (storeLogo) { storeBadgeEl.style.webkitMaskImage = `url('${convertSafePath(storeLogo)}')`; storeBadgeEl.style.display = 'block'; }
+    else storeBadgeEl.style.display = 'none';
   }
 
-  // Badges (fav, want, proton)
-  updateGalleryGamepageBadges(game);
-
-  // Cover art in right column
+  // Cover art
   const coverEl = document.getElementById('ggp-media-img');
   const coverSrc = game.CoverArt ? convertSafePath(game.CoverArt) : '';
-  if (coverEl) { coverEl.src = coverSrc; coverEl.style.display = coverSrc ? 'block' : 'none'; }
+  if (coverEl) { coverEl.src = coverSrc; }
 
-  // Screenshot media area: show label/hint
-  galleryScreenshots = game.Screenshot ? String(game.Screenshot).split('|').filter(s => s.trim()) : [];
-  galleryScreenIndex = 0;
-  const labelEl = document.getElementById('ggp-media-label');
-  if (labelEl) labelEl.innerText = galleryScreenshots.length > 0 ? t('html.stat_screenshots') : t('empty.no_media');
-  document.getElementById('ggp-media-hint').innerText = usingKeyboard ? `[X] ${t('footer.media')}` : '';
+  // Action buttons
+  ggpTrailerAvailable = false;
+  const trailerBtn = document.getElementById('ggp-btn-trailer');
+  trailerBtn.style.display = 'none';
+  window.api.checkLocalTrailer(game.Game).then(url => {
+    if (url && galleryCurrentGame && galleryCurrentGame.Game === game.Game) {
+      ggpTrailerAvailable = true;
+      trailerBtn.style.display = 'block';
+      trailerBtn.dataset.url = url;
+      ggpBuildButtonList();
+      ggpUpdateButtonFocus();
+    }
+  });
 
-  // Stats — vertical list matching CNGM sidebar
+  const playBtn = document.getElementById('ggp-btn-play');
+  playBtn.style.display = (game.LaunchCommand && String(game.LaunchCommand).trim()) ? 'block' : 'none';
+
+  updateGalleryGamepageBadges(game);
+  ggpBuildButtonList();
+  ggpUpdateButtonFocus();
+
+  // Stats — vertical list
   const statsEl = document.getElementById('ggp-stats-row');
   if (statsEl) {
     const stats = [
@@ -2264,10 +2305,27 @@ function updateGalleryGamepageContent(game) {
     ).join('');
   }
 
-  // Description
-  document.getElementById('ggp-desc').innerText = getLocalizedDescription(game) || t('empty.no_desc');
+  // Short description (localized, bold, accent)
+  const localDesc = getLocalizedDescription(game);
+  const shortEl = document.getElementById('ggp-short-desc');
+  if (shortEl) {
+    if (localDesc && localDesc.trim()) { shortEl.innerText = localDesc; shortEl.style.display = 'block'; }
+    else shortEl.style.display = 'none';
+  }
 
-  // Series + Similar games at bottom of stats panel
+  // Full Steam HTML description or fallback
+  const fullEl = document.getElementById('ggp-full-desc');
+  const fallbackEl = document.getElementById('ggp-fallback-desc');
+  if (game.SteamDesc && game.SteamDesc.trim()) {
+    fullEl.innerHTML = game.SteamDesc; fullEl.style.display = 'block';
+    fallbackEl.style.display = 'none';
+  } else {
+    fullEl.style.display = 'none';
+    fallbackEl.innerText = (!localDesc || !localDesc.trim()) ? t('empty.no_desc') : '';
+    fallbackEl.style.display = (!localDesc || !localDesc.trim()) ? 'block' : 'none';
+  }
+
+  // Series + Similar in stats panel extra area
   const extraEl = document.getElementById('ggp-extra');
   if (extraEl) {
     let extraHtml = '';
@@ -2278,9 +2336,7 @@ function updateGalleryGamepageContent(game) {
       const names = game.SimilarGames.split(',').map(n => n.trim()).filter(Boolean);
       const links = names.map(name => {
         const match = allGames.find(g => g.Game.toLowerCase() === name.toLowerCase());
-        return match
-          ? `<span class="similar-link" data-id="${match.id}">${name}</span>`
-          : `<span>${name}</span>`;
+        return match ? `<span class="similar-link" data-id="${match.id}">${name}</span>` : `<span>${name}</span>`;
       }).join(', ');
       extraHtml += `<div style="margin-top:6px;"><span style="color:var(--accent);font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;">${t('html.stat_similar')}</span><br>${links}</div>`;
     }
@@ -2293,75 +2349,137 @@ function updateGalleryGamepageContent(game) {
       });
     });
   }
+
+  // Screenshots banner — Ken Burns cycling like CNGM
+  galleryScreenshots = game.Screenshot ? String(game.Screenshot).split('|').filter(s => s.trim()) : [];
+  galleryScreenIndex = 0;
+  const ssBanner = document.getElementById('ggp-ss-banner');
+  const ssKbImg = document.getElementById('ggp-ss-kb-img');
+  clearInterval(ggpSsBannerInterval); ggpSsBannerInterval = null;
+
+  if (galleryScreenshots.length > 0 && ssBanner && ssKbImg) {
+    ssBanner.style.display = 'block';
+    let kbIdx = 0;
+    const showNext = () => {
+      ssKbImg.style.opacity = '0';
+      setTimeout(() => { ssKbImg.src = convertSafePath(galleryScreenshots[kbIdx]); ssKbImg.style.opacity = '1'; kbIdx = (kbIdx + 1) % galleryScreenshots.length; }, 500);
+    };
+    showNext();
+    if (galleryScreenshots.length > 1) ggpSsBannerInterval = setInterval(showNext, 5000);
+  } else if (ssBanner) {
+    ssBanner.style.display = 'none';
+  }
 }
 
 function updateGalleryGamepageBadges(game) {
-  const fav = document.getElementById('ggp-fav-badge');
-  const want = document.getElementById('ggp-want-badge');
-  const proton = document.getElementById('ggp-proton-badge');
-  if (fav) fav.style.display = game.FAV === 'YES' ? 'block' : 'none';
-  if (want) want.style.display = game.WANT_TO_PLAY === 'YES' ? 'block' : 'none';
-  if (proton && game.ProtonTier && game.ProtonTier.trim()) {
-    proton.style.display = 'block'; proton.innerText = game.ProtonTier;
-    colorProtonText(proton, game.ProtonTier);
-  } else if (proton) proton.style.display = 'none';
+  const favBtn = document.getElementById('ggp-btn-fav');
+  const wantBtn = document.getElementById('ggp-btn-want');
+  if (favBtn) {
+    const on = game.FAV === 'YES';
+    favBtn.innerText = on ? '★ FAV' : '+ FAV';
+    favBtn.classList.toggle('ggp-active', on);
+  }
+  if (wantBtn) {
+    const on = game.WANT_TO_PLAY === 'YES';
+    wantBtn.innerText = on ? '⚑ WANT ✓' : '⚑ WANT TO PLAY';
+    wantBtn.classList.toggle('ggp-active', on);
+  }
 }
 
-function cycleGalleryMedia() {
-  const ssEl = document.getElementById('ggp-media-ss');
-  const vidEl = document.getElementById('ggp-media-vid');
-  const labelEl = document.getElementById('ggp-media-label');
-  const game = galleryCurrentGame;
-  if (!game) return;
+function clearGalleryMedia() {
+  clearInterval(ggpSsBannerInterval); ggpSsBannerInterval = null;
+  ggpSlideshowOpen = false;
+  const slideshow = document.getElementById('ggp-slideshow');
+  if (slideshow) slideshow.classList.add('hidden');
+  const ssKbImg = document.getElementById('ggp-ss-kb-img');
+  if (ssKbImg) { ssKbImg.src = ''; ssKbImg.style.opacity = '0'; }
+  galleryMediaMode = 'cover';
+}
 
-  clearGalleryMedia();
+function ggpBuildButtonList() {
+  const ids = ['ggp-btn-fav', 'ggp-btn-want'];
+  if (document.getElementById('ggp-btn-trailer')?.style.display !== 'none') ids.push('ggp-btn-trailer');
+  if (document.getElementById('ggp-btn-play')?.style.display !== 'none') ids.push('ggp-btn-play');
+  ggpButtonIds = ids;
+  if (ggpButtonIndex >= ggpButtonIds.length) ggpButtonIndex = 0;
+}
 
-  if (galleryMediaMode === 'cover') {
-    if (galleryScreenshots.length > 0) {
-      galleryMediaMode = 'screenshot';
-      if (labelEl) labelEl.style.display = 'none';
-      ssEl.style.display = 'block';
-      ssEl.src = convertSafePath(galleryScreenshots[0]);
-      applySsKenBurns(ssEl);
-      if (galleryScreenshots.length > 1) {
-        galleryScreenInterval = setInterval(() => {
-          galleryScreenIndex = (galleryScreenIndex + 1) % galleryScreenshots.length;
-          ssEl.src = convertSafePath(galleryScreenshots[galleryScreenIndex]);
-          applySsKenBurns(ssEl);
-        }, 4000);
-      }
-    }
-  } else if (galleryMediaMode === 'screenshot') {
-    window.api.checkLocalTrailer(game.Game).then(url => {
-      if (url) {
-        galleryMediaMode = 'video';
-        ssEl.style.display = 'none';
-        vidEl.style.display = 'block';
-        vidEl.src = url; vidEl.play().catch(e => {});
-      } else {
-        galleryMediaMode = 'cover';
-        ssEl.style.display = 'none';
-        if (labelEl) labelEl.style.display = 'block';
-      }
-    });
-    return;
-  } else {
-    galleryMediaMode = 'cover';
-    vidEl.style.display = 'none';
-    if (labelEl) labelEl.style.display = 'block';
+function ggpUpdateButtonFocus() {
+  ggpButtonIds.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('ggp-focused', ggpFocus === 'BUTTONS' && i === ggpButtonIndex);
+  });
+  const ssBanner = document.getElementById('ggp-ss-banner');
+  if (ssBanner) ssBanner.classList.toggle('ggp-focused', ggpFocus === 'SS_BANNER');
+}
+
+function ggpMoveButton(dir) {
+  if (ggpButtonIds.length === 0) return;
+  ggpButtonIndex = (ggpButtonIndex + dir + ggpButtonIds.length) % ggpButtonIds.length;
+  playSound(sfxNav);
+  ggpUpdateButtonFocus();
+}
+
+function ggpSetFocus(target) {
+  ggpFocus = target;
+  ggpUpdateButtonFocus();
+  if (target === 'SS_BANNER') {
+    const el = document.getElementById('ggp-ss-banner');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   playSound(sfxNav);
 }
 
-function clearGalleryMedia() {
-  clearInterval(galleryScreenInterval); galleryScreenInterval = null;
-  const vidEl = document.getElementById('ggp-media-vid');
-  if (vidEl) { vidEl.pause(); vidEl.src = ''; vidEl.style.display = 'none'; }
-  const ssEl = document.getElementById('ggp-media-ss');
-  if (ssEl) ssEl.style.display = 'none';
-  const labelEl = document.getElementById('ggp-media-label');
-  if (labelEl) labelEl.style.display = 'block';
-  galleryMediaMode = 'cover';
+function ggpActivateButton() {
+  const id = ggpButtonIds[ggpButtonIndex];
+  if (!id || !galleryCurrentGame) return;
+  playSound(sfxSelect);
+  const game = galleryCurrentGame;
+  if (id === 'ggp-btn-fav') {
+    game.FAV = game.FAV === 'YES' ? 'NO' : 'YES';
+    window.api.saveDbField({ game: game.Game, field: 'FAV', value: game.FAV });
+    updateGalleryGamepageBadges(game);
+  } else if (id === 'ggp-btn-want') {
+    game.WANT_TO_PLAY = game.WANT_TO_PLAY === 'YES' ? 'NO' : 'YES';
+    window.api.saveDbField({ game: game.Game, field: 'WANT_TO_PLAY', value: game.WANT_TO_PLAY });
+    updateGalleryGamepageBadges(game);
+  } else if (id === 'ggp-btn-trailer') {
+    const url = document.getElementById('ggp-btn-trailer')?.dataset?.url;
+    if (url) { enterSleepMode(game, url); }
+  } else if (id === 'ggp-btn-play') {
+    if (game.LaunchCommand) enterSleepMode(game);
+  }
+}
+
+function ggpOpenSlideshow() {
+  if (galleryScreenshots.length === 0) return;
+  ggpSlideshowOpen = true;
+  ggpSlideshowScreens = galleryScreenshots;
+  ggpSlideshowIndex = 0;
+  playSound(sfxSelect);
+  document.getElementById('ggp-slideshow').classList.remove('hidden');
+  const hintEl = document.getElementById('ggp-ss-hint');
+  if (hintEl) hintEl.innerText = usingKeyboard ? `← → Navigate   Esc Close` : `${t('footer.navigate')}   B ${t('footer.back')}`;
+  ggpSlideshowRender();
+}
+
+function ggpSlideshowRender() {
+  const img = document.getElementById('ggp-ss-img');
+  const counter = document.getElementById('ggp-ss-counter');
+  if (img) img.src = convertSafePath(ggpSlideshowScreens[ggpSlideshowIndex]);
+  if (counter) counter.innerText = `${ggpSlideshowIndex + 1} / ${ggpSlideshowScreens.length}`;
+}
+
+function ggpSlideshowNav(dir) {
+  ggpSlideshowIndex = (ggpSlideshowIndex + dir + ggpSlideshowScreens.length) % ggpSlideshowScreens.length;
+  playSound(sfxNav);
+  ggpSlideshowRender();
+}
+
+function ggpCloseSlideshow() {
+  ggpSlideshowOpen = false;
+  playSound(sfxBack);
+  document.getElementById('ggp-slideshow').classList.add('hidden');
 }
 
 // ══════════════════════════════════════════════════════════════════════════

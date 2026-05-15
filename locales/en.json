@@ -296,6 +296,11 @@
     "kb_title": "SYSTEM CONTROLS",
     "kb_gamepad": "GAMEPAD",
     "kb_keyboard": "KEYBOARD",
-    "kb_close": "Press BACK to close"
+    "kb_close": "Press BACK to close",
+    "btn_watch_trailer": "WATCH TRAILER",
+    "btn_fav_on": "★ FAV",
+    "btn_fav_off": "+ FAV",
+    "btn_want_on": "⚑ WANT",
+    "btn_want_off": "WANT TO PLAY"
   }
 }
