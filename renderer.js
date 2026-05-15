@@ -26,6 +26,7 @@ let ggpFocus = 'BUTTONS'; // 'BUTTONS' | 'SS_BANNER' | 'CONTENT'
 let ggpButtonIndex = 0;
 let ggpButtonIds = [];   // built each time gamepage opens
 let ggpSlideshowOpen = false;
+let ggpTrailerMode = false;
 let ggpSlideshowScreens = [];
 let ggpSlideshowIndex = 0;
 let ggpSsBannerInterval = null;
@@ -482,9 +483,9 @@ function handleInput(action) {
   else if (gameState === 'GALLERY_GAMEPAGE') {
     // Slideshow mode swallows all input except close
     if (ggpSlideshowOpen) {
-      if (action === 'LEFT') { ggpSlideshowNav(-1); }
-      else if (action === 'RIGHT') { ggpSlideshowNav(1); }
-      else if (action === 'BACK' || action === 'ACCEPT') { ggpCloseSlideshow(); }
+      if (!ggpTrailerMode && action === 'LEFT') { ggpSlideshowNav(-1); }
+      else if (!ggpTrailerMode && action === 'RIGHT') { ggpSlideshowNav(1); }
+      else if (action === 'BACK' || action === 'ACCEPT' || ggpTrailerMode) { ggpCloseSlideshow(); }
       return;
     }
     if (action === 'BACK') { playSound(sfxBack); closeGalleryGamepage(); }
@@ -2389,8 +2390,13 @@ function updateGalleryGamepageBadges(game) {
 function clearGalleryMedia() {
   clearInterval(ggpSsBannerInterval); ggpSsBannerInterval = null;
   ggpSlideshowOpen = false;
+  ggpTrailerMode = false;
   const slideshow = document.getElementById('ggp-slideshow');
   if (slideshow) slideshow.classList.add('hidden');
+  const vid = document.getElementById('ggp-trailer-vid');
+  if (vid) { vid.pause(); vid.src = ''; vid.style.display = 'none'; }
+  const img = document.getElementById('ggp-ss-img');
+  if (img) img.style.display = 'block';
   const ssKbImg = document.getElementById('ggp-ss-kb-img');
   if (ssKbImg) { ssKbImg.src = ''; ssKbImg.style.opacity = '0'; }
   galleryMediaMode = 'cover';
@@ -2445,7 +2451,7 @@ function ggpActivateButton() {
     updateGalleryGamepageBadges(game);
   } else if (id === 'ggp-btn-trailer') {
     const url = document.getElementById('ggp-btn-trailer')?.dataset?.url;
-    if (url) { enterSleepMode(game, url); }
+    if (url) { ggpPlayTrailer(url); }
   } else if (id === 'ggp-btn-play') {
     if (game.LaunchCommand) enterSleepMode(game);
   }
@@ -2476,9 +2482,32 @@ function ggpSlideshowNav(dir) {
   ggpSlideshowRender();
 }
 
+function ggpPlayTrailer(url) {
+  ggpSlideshowOpen = true;
+  ggpTrailerMode = true;
+  playSound(sfxSelect);
+  const slideshow = document.getElementById('ggp-slideshow');
+  slideshow.classList.remove('hidden');
+  const img = document.getElementById('ggp-ss-img');
+  const vid = document.getElementById('ggp-trailer-vid');
+  const counter = document.getElementById('ggp-ss-counter');
+  if (img) img.style.display = 'none';
+  if (counter) counter.style.display = 'none';
+  if (vid) { vid.src = url; vid.style.display = 'block'; vid.play().catch(e => {}); }
+  const hint = document.getElementById('ggp-ss-hint');
+  if (hint) hint.innerText = usingKeyboard ? `Esc / Enter ${t('footer.back')}` : `B ${t('footer.back')}`;
+}
+
 function ggpCloseSlideshow() {
   ggpSlideshowOpen = false;
   playSound(sfxBack);
+  const vid = document.getElementById('ggp-trailer-vid');
+  if (vid) { vid.pause(); vid.src = ''; vid.style.display = 'none'; }
+  const img = document.getElementById('ggp-ss-img');
+  if (img) img.style.display = 'block';
+  const counter = document.getElementById('ggp-ss-counter');
+  if (counter) counter.style.display = 'block';
+  ggpTrailerMode = false;
   document.getElementById('ggp-slideshow').classList.add('hidden');
 }
 
