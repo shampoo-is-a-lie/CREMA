@@ -196,9 +196,9 @@
     #ggp-full-desc img { max-width: 100%; height: auto; border-radius: 6px; margin: 12px 0; display: block; }
     #ggp-fallback-desc { font-size: 15px; line-height: 1.8; color: var(--text_sec); display: none; }
     /* Right column: cover + stats */
-    #ggp-right { width: 274px; flex-shrink: 0; display: flex; flex-direction: column; gap: 14px; }
-    #ggp-cover { border-radius: 10px; overflow: hidden; border: 1px solid var(--border_solid); background: var(--bg_panel); }
+    #ggp-cover { width: 220px; flex-shrink: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border_solid); background: var(--bg_panel); align-self: flex-start; }
     #ggp-media-img { width: 100%; display: block; aspect-ratio: 2/3; object-fit: cover; }
+    #ggp-right { width: 274px; flex-shrink: 0; }
     #ggp-stats-panel { background: var(--bg_panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
     #ggp-stats-row { display: flex; flex-direction: column; }
     .ggp-stat { padding: 7px 0; border-bottom: 1px solid var(--border); }
@@ -455,6 +455,7 @@
       </div>
       <div id="ggp-scroll">
         <div id="ggp-content">
+          <div id="ggp-cover"><img id="ggp-media-img" src="" alt=""></div>
           <div id="ggp-left">
             <div id="ggp-ss-banner" class="ggp-ss-banner" style="display:none;">
               <img id="ggp-ss-kb-img" class="ggp-ss-kb-img" src="" alt="">
@@ -465,7 +466,6 @@
             <div id="ggp-fallback-desc"></div>
           </div>
           <div id="ggp-right">
-            <div id="ggp-cover"><img id="ggp-media-img" src="" alt=""></div>
             <div id="ggp-stats-panel">
               <div id="ggp-stats-row"></div>
               <div id="ggp-extra"></div>
