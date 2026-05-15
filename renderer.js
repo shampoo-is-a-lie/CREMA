@@ -342,8 +342,7 @@ function renderSetupScreen() {
     card.className = 'setup-card' + (i === selectedIdx ? ' selected' : '');
     card.innerHTML =
       `<div class="setup-card-imgwrap">
-        <img src="${convertSafePath(opt.img)}" alt="${opt.name}" onerror="this.style.display='none'">
-        <div class="setup-img-ph">${opt.name}</div>
+        <img src="${convertSafePath(opt.img)}" alt="${opt.name}">
         <div class="setup-card-check">✓</div>
       </div>
       <div class="setup-card-body">
