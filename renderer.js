@@ -1223,13 +1223,13 @@ function openSoundOverlay() { if (document.getElementById('overlay-backdrop')) d
 function renderSoundMenu() { const lst = document.getElementById('sound-list'); lst.innerHTML = ''; overlayItems = [t('sound.music_style_label'), audioCfg.bgm ? t('sound.bgm_on') : t('sound.bgm_off'), audioCfg.sfx ? t('sound.sfx_on') : t('sound.sfx_off'), t('sound.bgm_vol', {vol: Math.round(audioCfg.vol * 100)}), t('common.back_to_menu')]; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `snd-${i}`; lst.appendChild(div); }); document.querySelectorAll('#sound-list .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`snd-${currentOverlayIndex}`); if (el) el.classList.add('selected'); }
 function handleSoundHorizontal(dir) { if (currentOverlayIndex === 3) { let v = audioCfg.vol; if (dir === 'RIGHT') v = Math.min(1.0, v + 0.05); else v = Math.max(0.0, v - 0.05); audioCfg.vol = v; if (audioCfg.bgm && !isVideoActive()) bgmAudio.volume = v; window.api.saveAudioConfig(audioCfg); renderSoundMenu(); playSound(sfxNav); } }
 function executeSoundAction() { playSound(sfxSelect); if (currentOverlayIndex === 0) { openMusicStyleMenu(); } else if (currentOverlayIndex === 1) { audioCfg.bgm = !audioCfg.bgm; window.api.saveAudioConfig(audioCfg); applyBgmMode(); renderSoundMenu(); } else if (currentOverlayIndex === 2) { audioCfg.sfx = !audioCfg.sfx; window.api.saveAudioConfig(audioCfg); renderSoundMenu(); } else if (currentOverlayIndex === 4) closeSoundOverlay(); }
-function closeSoundOverlay() { playSound(sfxBack); document.getElementById('sound-backdrop').classList.add('hidden'); gameState = previousGameState; if (gameState === 'START' || gameState === 'MAIN') setBlur(false); }
+function closeSoundOverlay() { playSound(sfxBack); document.getElementById('sound-backdrop').classList.add('hidden'); gameState = previousGameState; if (gameState === 'START' || gameState === 'MAIN' || gameState === 'GALLERY' || gameState === 'GALLERY_GAMEPAGE') setBlur(false); }
 
 function openScrapeOverlay() { gameState = 'SCRAPE'; playSound(sfxSelect); currentOverlayIndex = 0; setBlur(true); overlayItems = [t('status.start_batch_scrape'), t('common.back_to_menu')]; const bd = document.getElementById('scrape-backdrop'); const lst = document.getElementById('scrape-list'); lst.innerHTML = ''; document.getElementById('scrape-game').innerText = t('status.ready_scan'); document.getElementById('scrape-fill').style.width = "0%"; document.getElementById('scrape-percent').innerText = "0%"; overlayItems.forEach((item, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.innerText = item; div.id = `scrp-${i}`; lst.appendChild(div); }); bd.classList.remove('hidden'); updateScrapeSelection(); }
 function updateScrapeSelection() { document.querySelectorAll('#scrape-list .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`scrp-${currentOverlayIndex}`); if (el) el.classList.add('selected'); }
 function executeScrapeAction() { playSound(sfxSelect); if (currentOverlayIndex === 0) { document.getElementById('scrape-list').innerHTML = ''; document.getElementById('scrape-game').innerText = t('status.analyzing_db'); window.api.runBatchScrape().then(() => { setTimeout(closeScrapeOverlay, 2000); }); } else { closeScrapeOverlay(); } }
 function updateScrapeProgressBar(data) { if (gameState !== 'SCRAPE') return; document.getElementById('scrape-game').innerText = data.game; document.getElementById('scrape-fill').style.width = `${data.percent}%`; document.getElementById('scrape-percent').innerText = `${Math.floor(data.percent)}%`; }
-function closeScrapeOverlay() { playSound(sfxBack); document.getElementById('scrape-backdrop').classList.add('hidden'); gameState = previousGameState; if (gameState === 'START' || gameState === 'MAIN') setBlur(false); }
+function closeScrapeOverlay() { playSound(sfxBack); document.getElementById('scrape-backdrop').classList.add('hidden'); gameState = previousGameState; if (gameState === 'START' || gameState === 'MAIN' || gameState === 'GALLERY' || gameState === 'GALLERY_GAMEPAGE') setBlur(false); }
 
 async function openSearchOverlay() { if (document.getElementById('overlay-backdrop')) document.getElementById('overlay-backdrop').classList.add('hidden'); gameState = 'SEARCH'; playSound(sfxSelect); setBlur(true); const bd = document.getElementById('search-backdrop'); const lst = document.getElementById('search-list'); const stat = document.getElementById('search-status'); lst.innerHTML = ''; currentSearchIndex = 0; searchResults = []; stat.innerText = t('status.searching_yt'); bd.classList.remove('hidden'); const results = await window.api.searchYoutube(filteredGames[currentGameIndex].Game); if(results.length === 0) { stat.innerText = t('status.no_results'); setTimeout(closeSearchOverlay, 2000); return; } stat.innerText = "Select a video to download:"; searchResults = results; searchResults.forEach((res, i) => { const div = document.createElement('div'); div.className = 'overlay-item'; div.id = `search-${i}`; div.style.display = "flex"; div.style.gap = "20px"; div.style.alignItems = "center"; div.style.textAlign = "left"; const img = document.createElement('img'); img.src = res.thumbnail; img.style.width = "120px"; img.style.borderRadius = "4px"; let ttl = String(res.title); if(ttl.length > 50) ttl = ttl.substring(0, 47) + "..."; div.appendChild(img); const txt = document.createElement('div'); txt.innerText = ttl; div.appendChild(txt); lst.appendChild(div); }); updateSearchSelection(); }
 function updateSearchSelection() { document.querySelectorAll('#search-list .overlay-item').forEach(el => el.classList.remove('selected')); const el = document.getElementById(`search-${currentSearchIndex}`); if (el) el.classList.add('selected'); }
@@ -2652,8 +2652,11 @@ function ggpPlayTrailer(url) {
   if (header) header.style.display = 'flex';
   if (titleEl && galleryCurrentGame) titleEl.innerText = galleryCurrentGame.Game;
   if (vid) { vid.src = url; vid.style.display = 'block'; vid.play().catch(e => {}); }
+  fadeBGM(0);
   const hint = document.getElementById('ggp-ss-hint');
-  if (hint) hint.innerText = usingKeyboard ? `Esc / Enter — ${t('footer.back')}` : `B — ${t('footer.back')}`;
+  if (hint) hint.innerHTML = usingKeyboard
+    ? `${getKey('Esc')} / ${getKey('Enter')} &nbsp; ${t('footer.back')}`
+    : `${getMappedBtn('EAST')} &nbsp; ${t('footer.back')}`;
 }
 
 function ggpCloseSlideshow() {
@@ -2661,6 +2664,10 @@ function ggpCloseSlideshow() {
   playSound(sfxBack);
   const vid = document.getElementById('ggp-trailer-vid');
   if (vid) { vid.pause(); vid.src = ''; vid.style.display = 'none'; }
+  if (ggpTrailerMode && audioCfg.bgm && audioCfg.bgm_mode !== 'OFF') {
+    bgmAudio.play().catch(e => {});
+    fadeBGM(audioCfg.vol);
+  }
   const img = document.getElementById('ggp-ss-img');
   if (img) img.style.display = 'block';
   const counter = document.getElementById('ggp-ss-counter');
