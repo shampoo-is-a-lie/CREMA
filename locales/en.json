@@ -180,7 +180,8 @@
     "scraping_status": "SCRAPING STATUS",
     "no_matches": "NO MATCHES FOUND",
     "select_match": "SELECT EXACT MATCH",
-    "refine_search": "REFINE SEARCH"
+    "refine_search": "REFINE SEARCH",
+    "search_igdb": "SEARCH IGDB INSTEAD"
   },
   "osk": {
     "refine_search": "REFINE SEARCH TERM",

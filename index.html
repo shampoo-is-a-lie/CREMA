@@ -220,9 +220,9 @@
     .ggp-ss-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1; transition: background 0.18s; }
     .ggp-ss-banner.ggp-focused .ggp-ss-overlay { background: rgba(0,0,0,0.2); }
     .ggp-ss-text { font-size: 26px; font-weight: 900; color: #fff; letter-spacing: 4px; text-shadow: 0 4px 12px rgba(0,0,0,0.9); }
-    #ggp-short-desc { font-size: 17px; font-weight: 700; color: var(--accent); line-height: 1.65; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--border_solid); display: none; }
-    #ggp-full-desc { color: var(--text_sec); line-height: 1.8; font-size: 15px; word-wrap: break-word; overflow-x: hidden; display: none; }
-    #ggp-full-desc h1, #ggp-full-desc h2, #ggp-full-desc h3 { color: var(--text_main); margin-top: 28px; margin-bottom: 12px; font-weight: 900; font-size: 20px; }
+    #ggp-short-desc { font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1.65; margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--border_solid); display: none; }
+    #ggp-full-desc { color: var(--text_sec); line-height: 1.8; font-size: 22px; word-wrap: break-word; overflow-x: hidden; display: none; }
+    #ggp-full-desc h1, #ggp-full-desc h2, #ggp-full-desc h3 { color: var(--text_main); margin-top: 28px; margin-bottom: 12px; font-weight: 900; font-size: 26px; }
     #ggp-full-desc a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
     #ggp-full-desc img { max-width: 100%; height: auto; border-radius: 6px; margin: 12px 0; display: block; }
     #ggp-fallback-desc { font-size: 15px; line-height: 1.8; color: var(--text_sec); display: none; }
@@ -597,17 +597,6 @@
       </div>
     </div>
 
-    <div id="scrape-backdrop" class="overlay-backdrop hidden" style="z-index: 105;">
-      <div class="overlay-modal" style="text-align: center;">
-        <div class="overlay-title" data-i18n="html.scrape_title">SCRAPING ENGINE</div>
-        <div id="scrape-game" style="color: var(--accent); font-size: 24px; font-weight: bold; margin-bottom: 20px; height: 30px;" data-i18n="html.scrape_ready">Ready to scan database.</div>
-        <div style="width: 100%; height: 25px; background-color: var(--bg_menu); border-radius: 12px; overflow: hidden; position: relative; margin-bottom: 20px;">
-          <div id="scrape-fill" style="height: 100%; width: 0%; background-color: var(--accent); transition: width 0.1s linear;"></div>
-          <div id="scrape-percent" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; color: var(--text_main); font-weight: bold;">0%</div>
-        </div>
-        <div class="overlay-list" id="scrape-list"></div>
-      </div>
-    </div>
 
     <div id="sgdb-backdrop" class="overlay-backdrop hidden" style="z-index: 150;">
       <div class="overlay-modal" style="width: 1200px; text-align: center;">

@@ -180,7 +180,8 @@
     "scraping_status": "STATUS DA BUSCA",
     "no_matches": "NENHUM RESULTADO",
     "select_match": "SELECIONE O JOGO CORRETO",
-    "refine_search": "REFINAR BUSCA"
+    "refine_search": "REFINAR BUSCA",
+    "search_igdb": "BUSCAR NO IGDB"
   },
   "osk": {
     "refine_search": "REFINAR TERMO DE BUSCA",
