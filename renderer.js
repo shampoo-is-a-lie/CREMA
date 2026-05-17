@@ -17,6 +17,11 @@ function t(key, vars = {}) {
 }
 const CAT_KEYS = { "ALL GAMES": "cat.all_games", "OTHERS": "cat.others", "PHYSICAL": "cat.physical", "EMULATION": "cat.emulation", "APPS": "cat.apps", "PLAYABLE": "cat.playable", "WANT TO PLAY": "cat.want", "FAVS": "cat.favs", "INSTALLED": "cat.installed" };
 
+function isManualCategory(game) {
+    const s = (game.Store || '').toLowerCase();
+    return /physical|others|emulation|apps/.test(s) && !/steam|epic|gog|heroic|amazon/.test(s);
+}
+
 function getInstallCommand(game) {
     const cmd = game.LaunchCommand || '';
     if (/heroic:\/\/launch/i.test(cmd)) {
@@ -624,6 +629,7 @@ function handleInput(action) {
       playSound(sfxSelect);
       const g = filteredGames[currentGameIndex];
       if (g.LaunchCommand) { enterSleepMode(g); }
+      else if (isManualCategory(g)) { openOverlay("GAME_MENU"); }
     }
   }
   else if (gameState === 'GALLERY') {
@@ -750,7 +756,13 @@ function handleOSKInput(action) {
     else if (key === 'DONE') {
       if (oskMode === 'GALLERY_SEARCH') { galleryQuery = targetStr; applyGalleryFilter(); renderGalleryGrid(); document.getElementById('osk-backdrop').classList.add('hidden'); setBlur(false); gameState = 'GALLERY'; return; }
       if (oskMode === 'SEARCH') { closeOSK(); return; }
-      else if (oskMode === 'LAUNCH_CMD') { filteredGames[currentGameIndex].LaunchCommand = targetStr; window.api.saveDbField({game: filteredGames[currentGameIndex].Game, field: 'LaunchCommand', value: targetStr}); document.getElementById('osk-backdrop').classList.add('hidden'); refreshDatabase(); openOverlay('GAME_MENU'); return; }
+      else if (oskMode === 'LAUNCH_CMD') {
+        const g = filteredGames[currentGameIndex];
+        g.LaunchCommand = targetStr;
+        window.api.saveDbField({game: g.Game, field: 'LaunchCommand', value: targetStr});
+        if (targetStr && isManualCategory(g)) { g.Installed = 1; window.api.saveDbField({game: g.Game, field: 'Installed', value: 1}); }
+        document.getElementById('osk-backdrop').classList.add('hidden'); refreshDatabase(); openOverlay('GAME_MENU'); return;
+      }
       else if (oskMode === 'RENAME_GAME') { const oldName = filteredGames[currentGameIndex].Game; filteredGames[currentGameIndex].Game = targetStr; window.api.saveDbField({game: oldName, field: 'Game', value: targetStr}); document.getElementById('osk-backdrop').classList.add('hidden'); refreshDatabase(); openOverlay('GAME_MENU'); return; }
       else if (oskMode === 'SGDB_API') { window.api.setSetting('steamgriddb_api', targetStr).then(() => { document.getElementById('osk-backdrop').classList.add('hidden'); openSgdbOverlay(targetStr, selectedResolvedName, selectedAppId); }); return; }
       else if (oskMode === 'REFINE_SEARCH') { document.getElementById('osk-backdrop').classList.add('hidden'); document.getElementById('overlay-backdrop').classList.remove('hidden'); triggerSteamSearch(targetStr); return; }
@@ -2296,6 +2308,9 @@ function renderGalleryGrid() {
     const coverArea = imgSrc
       ? `<div class="gcell-cover-area"><img src="${imgSrc}" alt=""></div>`
       : `<div class="gcell-cover-area"><div class="gcell-noart">${game.Game}</div></div>`;
+    if (!actionBtn && isManualCategory(game)) {
+      actionBtn = `<button class="gcell-play-btn gcell-install-btn">⬇ ${t('status.install')}</button>`;
+    }
     const footerRow = (actionBtn || storeBadge) ? `<div class="gcell-footer-row">${actionBtn}${storeBadge}</div>` : '';
     cell.innerHTML = `${coverArea}<div class="gcell-footer"><div class="gcell-title">${game.Game}</div>${footerRow}</div>`;
     cell.addEventListener('click', () => { galleryIndex = i; playSound(sfxSelect); openGalleryGamepage(galleryGames[i]); });
@@ -2510,9 +2525,15 @@ function updateGalleryGamepageContent(game) {
       playBtn.dataset.installMode = '1';
       playBtn.classList.add('install-mode');
     }
+  } else if (isManualCategory(game)) {
+    playBtn.style.display = 'block';
+    playBtn.innerText = `⬇ ${t('status.install')}`;
+    playBtn.dataset.installMode = 'add_cmd';
+    playBtn.classList.add('install-mode');
   } else {
     playBtn.style.display = 'none';
     playBtn.dataset.installMode = '';
+    playBtn.classList.remove('install-mode');
   }
 
   updateGalleryGamepageBadges(game);
@@ -2686,7 +2707,12 @@ function ggpActivateButton() {
     const url = document.getElementById('ggp-btn-trailer')?.dataset?.url;
     if (url) { ggpPlayTrailer(url); }
   } else if (id === 'ggp-btn-play') {
-    if (game.LaunchCommand) { enterSleepMode(game); }
+    const playBtnEl = document.getElementById('ggp-btn-play');
+    if (playBtnEl?.dataset?.installMode === 'add_cmd') {
+      previousGameState = 'GALLERY_GAMEPAGE';
+      document.getElementById('overlay-backdrop').classList.add('hidden');
+      openOSK('LAUNCH_CMD', t('osk.launch_command'), '');
+    } else if (game.LaunchCommand) { enterSleepMode(game); }
   }
 }
 
