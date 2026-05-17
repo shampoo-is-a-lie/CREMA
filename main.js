@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -88,7 +88,7 @@ let db;
 
 function createWindow () {
     const win = new BrowserWindow({ width: 1280, height: 720, fullscreen: true, frame: false, backgroundColor: '#2C1E16', webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, webSecurity: false } });
-    win.loadFile('index.html'); win.webContents.on('did-finish-load', () => { win.webContents.insertCSS('* { cursor: none !important; }'); });
+    win.loadFile('index.html'); win.webContents.on('did-finish-load', () => { win.webContents.insertCSS('* { cursor: none !important; }'); startSteamInstallWatcher(win); });
 }
 
 app.whenReady().then(() => {
@@ -105,6 +105,7 @@ app.whenReady().then(() => {
         try { db.prepare("ALTER TABLE games ADD COLUMN Description_i18n TEXT DEFAULT ''").run(); } catch(e) {}
         try { db.prepare("ALTER TABLE games ADD COLUMN Franchise TEXT DEFAULT ''").run(); } catch(e) {}
         try { db.prepare("ALTER TABLE games ADD COLUMN IGDBTrailer TEXT DEFAULT ''").run(); } catch(e) {}
+        try { db.prepare("ALTER TABLE games ADD COLUMN Installed INTEGER DEFAULT 1").run(); } catch(e) {}
     } catch (err) {}
     createWindow();
 });
@@ -133,7 +134,108 @@ ipcMain.on('launch-game', (event, cmd) => {
     child.unref();
 });
 ipcMain.on('quit-app', () => app.quit());
-const SAVE_DB_ALLOWED_FIELDS = new Set(['FAV', 'WANT_TO_PLAY', 'LaunchCommand', 'Game', 'CoverArt', 'Screenshot', 'DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'Description_i18n', 'ProtonTier', 'SteamAppID', 'HLTB_Main']);
+const SAVE_DB_ALLOWED_FIELDS = new Set(['FAV', 'WANT_TO_PLAY', 'LaunchCommand', 'Game', 'CoverArt', 'Screenshot', 'DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'Description_i18n', 'ProtonTier', 'SteamAppID', 'HLTB_Main', 'Installed']);
+
+function getSteamLibraryPaths() {
+    const home = os.homedir();
+    const roots = [
+        path.join(home, '.local', 'share', 'Steam'),
+        path.join(home, '.var', 'app', 'com.valvesoftware.Steam', 'data', 'steam'),
+        path.join(home, '.steam', 'steam'),
+    ];
+    const dirs = new Set();
+    for (const root of roots) {
+        const sa = path.join(root, 'steamapps');
+        if (!fs.existsSync(sa)) continue;
+        dirs.add(sa);
+        try {
+            const vdf = path.join(sa, 'libraryfolders.vdf');
+            if (fs.existsSync(vdf)) {
+                const content = fs.readFileSync(vdf, 'utf8');
+                for (const m of content.matchAll(/"path"\s+"([^"]+)"/g)) {
+                    const extra = path.join(m[1], 'steamapps');
+                    if (fs.existsSync(extra)) dirs.add(extra);
+                }
+            }
+        } catch(e) {}
+    }
+    return [...dirs];
+}
+function isSteamGameInstalled(appId) {
+    if (!appId || appId === 'None' || appId === '') return false;
+    const id = String(appId).replace(/\.0+$/, '');
+    return getSteamLibraryPaths().some(dir => fs.existsSync(path.join(dir, `appmanifest_${id}.acf`)));
+}
+function parseHeroicInstalledIds(raw) {
+    const items = Array.isArray(raw) ? raw
+        : Array.isArray(raw.installed) ? raw.installed
+        : Object.values(raw);
+    const ids = new Set();
+    for (const item of items) {
+        const id = String(item.app_name || item.appName || item.appID || '');
+        if (id) ids.add(id);
+    }
+    return ids;
+}
+
+function isHeroicGameInstalled(launchCommand) {
+    if (!launchCommand) return null;
+    const match = launchCommand.match(/heroic:\/\/launch\/(epic|gog|amazon)\/([^"\s]+)/i);
+    if (!match) return null;
+    const [, storeType, appId] = match;
+    const home = os.homedir();
+    const heroicBases = [path.join(home, '.config', 'heroic'), path.join(home, '.var', 'app', 'com.heroicgameslauncher.hgl', 'config', 'heroic')];
+    const rel = { epic: path.join('legendaryConfig','legendary','installed.json'), gog: path.join('gog_store','installed.json'), amazon: path.join('nile_config','nile','installed.json') };
+    for (const base of heroicBases) {
+        const p = path.join(base, rel[storeType] || '');
+        if (!fs.existsSync(p)) continue;
+        try { const ids = parseHeroicInstalledIds(JSON.parse(fs.readFileSync(p,'utf8'))); return ids.has(appId) ? true : null; } catch(e) {}
+    }
+    return null; // positive install not confirmed — preserve existing DB value (defaults to 1)
+}
+function resolveInstallState(launchCommand, steamAppId) {
+    const cmd = launchCommand || '';
+    if (/heroic:\/\/launch/i.test(cmd)) {
+        const h = isHeroicGameInstalled(cmd);
+        return h === true ? 1 : null; // only write 1 when confirmed; never force 0
+    }
+    if (/steam:\/\/rungameid/i.test(cmd) && steamAppId && steamAppId !== 'None' && steamAppId !== '') {
+        return isSteamGameInstalled(steamAppId) ? 1 : 0;
+    }
+    return null;
+}
+ipcMain.handle('verify-install-status', (e, gameId) => {
+    if (!db) return { installed: 1 };
+    const game = db.prepare("SELECT id, SteamAppID, LaunchCommand, Installed FROM games WHERE id=?").get(gameId);
+    if (!game) return { installed: 1 };
+    const installed = resolveInstallState(game.LaunchCommand, game.SteamAppID);
+    if (installed !== null) db.prepare("UPDATE games SET Installed=? WHERE id=?").run(installed, gameId);
+    return { installed: installed ?? game.Installed ?? 1 };
+});
+ipcMain.handle('open-install-url', async (e, url) => { if (url) await shell.openExternal(url); });
+
+let steamInstallWatchers = [];
+function startSteamInstallWatcher(win) {
+    steamInstallWatchers.forEach(w => { try { w.close(); } catch(e) {} });
+    steamInstallWatchers = [];
+    let debounce = null;
+    const onChange = (ev, filename) => {
+        if (!filename || !filename.startsWith('appmanifest_')) return;
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+            if (!db) return;
+            const games = db.prepare("SELECT id, SteamAppID, LaunchCommand FROM games WHERE LaunchCommand IS NOT NULL AND LaunchCommand != ''").all();
+            for (const g of games) {
+                const s = resolveInstallState(g.LaunchCommand, g.SteamAppID);
+                if (s !== null) db.prepare("UPDATE games SET Installed=? WHERE id=?").run(s, g.id);
+            }
+            if (win) win.webContents.send('install-status-updated');
+        }, 1500);
+    };
+    for (const dir of getSteamLibraryPaths()) {
+        try { steamInstallWatchers.push(fs.watch(dir, { persistent: false }, onChange)); } catch(e) {}
+    }
+}
 ipcMain.on('save-db-field', (event, { game, field, value }) => { if (!db || !SAVE_DB_ALLOWED_FIELDS.has(field)) return; try { db.prepare(`UPDATE games SET ${field} = ? WHERE Game = ?`).run(value, game); } catch (e) {} });
 ipcMain.handle('clear-history', () => {
     if (!db) return false;
@@ -294,7 +396,7 @@ ipcMain.handle('scrape-igdb-data', async (e, gameName, mode, igdbId) => {
         const igdb = data[0];
         const beautifulName = getBeautifulName(gameName);
         const steamExt = igdb.external_games?.find(ex => ex.category === 1);
-        const steamAppId = steamExt?.uid || null;
+        const steamAppId = steamExt?.uid ? String(steamExt.uid).replace(/\.0+$/, '') : null;
         let overallSuccess = false;
 
         if (mode === 'COVER' || mode === 'ALL') {

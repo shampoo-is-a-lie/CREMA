@@ -139,6 +139,9 @@
     "jb_no_tracks": "NO TRACKS FOUND"
   },
   "status": {
+    "install": "INSTALL",
+    "installed": "INSTALLED",
+    "not_installed": "NOT INSTALLED",
     "grinding": "GRINDING...",
     "brewing": "BREWING...",
     "searching": "Searching...",
@@ -199,6 +202,7 @@
   },
   "cat": {
     "all_games": "ALL GAMES",
+    "installed": "INSTALLED",
     "others": "OTHERS",
     "physical": "PHYSICAL",
     "emulation": "EMULATION",
@@ -298,6 +302,7 @@
     "kb_gamepad": "GAMEPAD",
     "kb_keyboard": "KEYBOARD",
     "kb_close": "Press BACK to close",
+    "btn_play": "▶ PLAY",
     "btn_watch_trailer": "WATCH TRAILER",
     "btn_fav_on": "★ FAV",
     "btn_fav_off": "+ FAV",

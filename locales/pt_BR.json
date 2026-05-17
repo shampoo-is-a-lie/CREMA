@@ -139,6 +139,9 @@
     "jb_no_tracks": "NENHUMA FAIXA ENCONTRADA"
   },
   "status": {
+    "install": "INSTALAR",
+    "installed": "INSTALADO",
+    "not_installed": "NÃO INSTALADO",
     "grinding": "TORRANDO E MOENDO OS GRÃOS...",
     "brewing": "PASSANDO O CAFÉ...",
     "searching": "Buscando...",
@@ -199,6 +202,7 @@
   },
   "cat": {
     "all_games": "JOGOS (TODOS)",
+    "installed": "INSTALADOS",
     "others": "OUTROS",
     "physical": "FÍSICO",
     "emulation": "EMULAÇÃO",
@@ -298,6 +302,7 @@
     "kb_gamepad": "CONTROLE",
     "kb_keyboard": "TECLADO",
     "kb_close": "Pressione VOLTAR para fechar",
+    "btn_play": "▶ JOGAR",
     "btn_watch_trailer": "VER TRAILER",
     "btn_fav_on": "★ FAV",
     "btn_fav_off": "+ FAV",

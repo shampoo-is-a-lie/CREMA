@@ -15,7 +15,19 @@ function t(key, vars = {}) {
   if (!val) return key;
   return String(val).replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : `{${k}}`);
 }
-const CAT_KEYS = { "ALL GAMES": "cat.all_games", "OTHERS": "cat.others", "PHYSICAL": "cat.physical", "EMULATION": "cat.emulation", "APPS": "cat.apps", "PLAYABLE": "cat.playable", "WANT TO PLAY": "cat.want", "FAVS": "cat.favs" };
+const CAT_KEYS = { "ALL GAMES": "cat.all_games", "OTHERS": "cat.others", "PHYSICAL": "cat.physical", "EMULATION": "cat.emulation", "APPS": "cat.apps", "PLAYABLE": "cat.playable", "WANT TO PLAY": "cat.want", "FAVS": "cat.favs", "INSTALLED": "cat.installed" };
+
+function getInstallCommand(game) {
+    const cmd = game.LaunchCommand || '';
+    if (/heroic:\/\/launch/i.test(cmd)) {
+        const m = cmd.match(/heroic:\/\/launch\/[^"\s]+/i);
+        return m ? m[0] : null;
+    }
+    if (/steam:\/\/rungameid/i.test(cmd) && game.SteamAppID && String(game.SteamAppID).trim() !== '' && String(game.SteamAppID) !== 'None') {
+        return `steam://install/${String(game.SteamAppID).replace(/\.0+$/, '')}`;
+    }
+    return null;
+}
 
 // ── GALLERY STATE ──────────────────────────────────────────────────────────
 let galleryIndex = 0, galleryCatIndex = 0, galleryQuery = '';
@@ -87,7 +99,7 @@ let activeScrapeMode = ''; let scrapeSource = 'STEAM';
 let steamSearchResults = []; let selectedAppId = null; let selectedResolvedName = null;
 let igdbSearchResults = []; let selectedIgdbId = null;
 
-const categories = ["ALL GAMES", "STEAM", "GOG", "EPIC", "OTHERS", "PHYSICAL", "EMULATION", "AMAZON", "APPS", "PLAYABLE", "WANT TO PLAY", "FAVS"];
+const categories = ["ALL GAMES", "INSTALLED", "STEAM", "GOG", "EPIC", "OTHERS", "PHYSICAL", "EMULATION", "AMAZON", "APPS", "PLAYABLE", "WANT TO PLAY", "FAVS"];
 
 const THEMES = {
   "DARK GRAY": {bg: "#141414", bg_panel: "rgba(0,0,0,0.5)", bg_menu: "#222222", accent: "#ffffff", accent_menu: "#00e5ff", text_main: "#ffffff", text_sec: "#bbbbbb", text_dim: "#777777", border: "rgba(255,255,255,0.1)", border_solid: "#555555"},
@@ -435,6 +447,7 @@ async function boot() {
   let prog = 0; const bar = document.getElementById('splash-bar'); const txt = document.getElementById('splash-text');
   const l = setInterval(() => { prog += 2; bar.style.width = `${prog}%`; if (prog === 30) txt.innerText = t('status.grinding'); if (prog === 60) txt.innerText = t('status.brewing'); if (prog >= 100) { clearInterval(l); document.querySelector('.splash-logo').classList.add('boot-anim'); setTimeout(async () => { hasBooted = true; const setupDone = await window.api.getSetting('setup_complete'); if (!setupDone) { applyBgmMode(); showSetupScreen(); } else { transitionToStart(); applyBgmMode(); resetIdleTimer(); } }, 800); } }, 30);
   requestAnimationFrame(pollGamepad); window.api.onDownloadProgress(updateDownloadProgressBar);
+  window.api.onInstallStatusUpdated(() => refreshDatabase());
 }
 
 let inputDebounce = false; let navRepeatDelay = 180; let lastSelectionTime = 0; let wakeHoldFrames = 0;
@@ -525,10 +538,18 @@ function pollGamepad() {
   requestAnimationFrame(pollGamepad);
 }
 
+const keysHeld = new Set();
+window.addEventListener('keyup', (e) => { keysHeld.delete(e.key); });
+
 window.addEventListener('keydown', (e) => {
   try {
+    keysHeld.add(e.key);
     if (e.key === 'Tab') e.preventDefault();
-    if (gameState === 'GAME_RUNNING') { if (e.key === 'Escape' || e.key === 'Backspace') wakeUpCrema(); return; }
+    if (gameState === 'GAME_RUNNING') {
+      if (e.key === 'Escape' || e.key === 'Backspace') { wakeUpCrema(); return; }
+      if (keysHeld.has(',') && keysHeld.has('.')) { wakeUpCrema(); return; }
+      return;
+    }
     setInputMethod(true);
     if (gameState === 'SCREENSAVER') { if (e.key === 'Enter') handleSSAction('LAUNCH'); else if (e.key === 'y' || e.key === 'Y') handleSSAction('FAV'); else if (e.key === 'x' || e.key === 'X') handleSSAction('WANT'); else stopScreensaver(); }
     else {
@@ -599,7 +620,11 @@ function handleInput(action) {
       if (gameHasTrailer) { playSound(sfxSelect); mediaSwapped = !mediaSwapped; const md = document.getElementById('media-container'), mn = document.getElementById('mini-dock'), v = document.getElementById('video-player'), s = document.getElementById('screenshot-player'), wp = !v.paused; if (mediaSwapped) { md.appendChild(s); mn.appendChild(v); } else { md.appendChild(v); mn.appendChild(s); } if (wp) v.play().catch(e=>{}); }
       else openSearchOverlay();
     }
-    else if (action === 'ACCEPT') { playSound(sfxSelect); const cmd = filteredGames[currentGameIndex].LaunchCommand; if (cmd) { enterSleepMode(filteredGames[currentGameIndex]); } }
+    else if (action === 'ACCEPT') {
+      playSound(sfxSelect);
+      const g = filteredGames[currentGameIndex];
+      if (g.LaunchCommand) { enterSleepMode(g); }
+    }
   }
   else if (gameState === 'GALLERY') {
     if (action === 'LEFT') { navigateGallery('LEFT'); }
@@ -783,7 +808,7 @@ function applyLiveFilters(preserveIndex = false) {
 
   let baseFiltered = allGames.filter(g => {
     const store = g.Store ? String(g.Store).toLowerCase() : ""; const title = g.Game ? String(g.Game).toLowerCase() : ""; let matchCat = false;
-    if (catName === "ALL GAMES") matchCat = true; else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "AMAZON") matchCat = store.includes("amazon"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES'; else if (catName === "PLAYABLE") matchCat = g.LaunchCommand && String(g.LaunchCommand).trim() !== "";
+    if (catName === "ALL GAMES") matchCat = true; else if (catName === "INSTALLED") matchCat = g.Installed == 1; else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "AMAZON") matchCat = store.includes("amazon"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES'; else if (catName === "PLAYABLE") matchCat = g.LaunchCommand && String(g.LaunchCommand).trim() !== "";
     if (!matchCat) return false; if (q !== "" && !title.includes(q)) return false; return true;
   });
 
@@ -1520,7 +1545,8 @@ function renderGameList() {
     const d = document.createElement('div');
     d.className = 'game-item';
     let p = ""; if (game.FAV === 'YES') p += "★ "; if (game.WANT_TO_PLAY === 'YES') p += "♥ ";
-    d.innerText = p + game.Game;
+    const isInst = game.Installed == null || game.Installed == 1;
+    d.innerHTML = `<span class="list-install-dot ${isInst ? 'is-installed' : 'not-installed'}" title="${isInst ? t('status.installed') : t('status.install')}">●</span>${p}${game.Game}`;
     d.id = `game-${i}`;
     frag.appendChild(d);
   });
@@ -2162,6 +2188,7 @@ function matchCatForGallery(g, catName) {
   if (catName === "AMAZON") return store.includes("amazon");
   if (catName === "APPS") return store.includes("apps");
   if (catName === "OTHERS") return store.includes("others");
+  if (catName === "INSTALLED") return g.Installed == 1;
   if (catName === "FAVS") return g.FAV === 'YES';
   if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES';
   if (catName === "PLAYABLE") return !!(g.LaunchCommand && String(g.LaunchCommand).trim());
@@ -2258,12 +2285,18 @@ function renderGalleryGrid() {
     cell.id = `gcell-${i}`;
     const imgSrc = game.CoverArt ? convertSafePath(game.CoverArt) : '';
     const logo = getGalleryStoreLogo(game.Store);
-    const playBtn = (game.LaunchCommand && String(game.LaunchCommand).trim()) ? `<button class="gcell-play-btn">▶ PLAYABLE</button>` : '';
+    const isInstalled = game.Installed == null || game.Installed == 1;
+    let actionBtn = '';
+    if (game.LaunchCommand && String(game.LaunchCommand).trim()) {
+      actionBtn = isInstalled
+        ? `<button class="gcell-play-btn gcell-installed-btn">▶ ${t('status.installed')}</button>`
+        : `<button class="gcell-play-btn gcell-install-btn">⬇ ${t('status.install')}</button>`;
+    }
     const storeBadge = logo ? `<div class="gcell-store-badge" style="-webkit-mask-image:url('${logo}');"></div>` : '';
     const coverArea = imgSrc
       ? `<div class="gcell-cover-area"><img src="${imgSrc}" alt=""></div>`
       : `<div class="gcell-cover-area"><div class="gcell-noart">${game.Game}</div></div>`;
-    const footerRow = (playBtn || storeBadge) ? `<div class="gcell-footer-row">${playBtn}${storeBadge}</div>` : '';
+    const footerRow = (actionBtn || storeBadge) ? `<div class="gcell-footer-row">${actionBtn}${storeBadge}</div>` : '';
     cell.innerHTML = `${coverArea}<div class="gcell-footer"><div class="gcell-title">${game.Game}</div>${footerRow}</div>`;
     cell.addEventListener('click', () => { galleryIndex = i; playSound(sfxSelect); openGalleryGamepage(galleryGames[i]); });
     grid.appendChild(cell);
@@ -2464,7 +2497,23 @@ function updateGalleryGamepageContent(game) {
   });
 
   const playBtn = document.getElementById('ggp-btn-play');
-  playBtn.style.display = (game.LaunchCommand && String(game.LaunchCommand).trim()) ? 'block' : 'none';
+  const hasCmd = game.LaunchCommand && String(game.LaunchCommand).trim();
+  const isGameInstalled = game.Installed == null || game.Installed == 1;
+  if (hasCmd) {
+    playBtn.style.display = 'block';
+    if (isGameInstalled) {
+      playBtn.innerText = t('html.btn_play');
+      playBtn.dataset.installMode = '';
+      playBtn.classList.remove('install-mode');
+    } else {
+      playBtn.innerText = `⬇ ${t('status.install')}`;
+      playBtn.dataset.installMode = '1';
+      playBtn.classList.add('install-mode');
+    }
+  } else {
+    playBtn.style.display = 'none';
+    playBtn.dataset.installMode = '';
+  }
 
   updateGalleryGamepageBadges(game);
   ggpBuildButtonList();
@@ -2637,7 +2686,7 @@ function ggpActivateButton() {
     const url = document.getElementById('ggp-btn-trailer')?.dataset?.url;
     if (url) { ggpPlayTrailer(url); }
   } else if (id === 'ggp-btn-play') {
-    if (game.LaunchCommand) enterSleepMode(game);
+    if (game.LaunchCommand) { enterSleepMode(game); }
   }
 }
 
