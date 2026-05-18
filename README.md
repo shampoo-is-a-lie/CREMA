@@ -29,8 +29,8 @@ Place both AppImages in the same folder and CREMA is available instantly from CN
 
 | | | |
 |:---:|:---:|:---:|
-| ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_02.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_05.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_08.jpg) |
-| ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_11.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_14.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_17.jpg) |
+| ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_02.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_03.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_04.jpg) |
+| ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_05.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_06.jpg) | ![](https://shampoo-is-a-lie.github.io/CafeNeuroticoWebSite/assets/images/crema_scr_07.jpg) |
 
 ## Features
 
