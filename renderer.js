@@ -2905,12 +2905,22 @@ async function pollGrinderProgress(isUninstall) {
 
 async function triggerGrinderInstall() {
     const game = _grinderConfirmGame; if (!game) return;
-    if (!game.app_id) {
+    const storeL = (game.Store || '').toLowerCase();
+    const store = storeL.includes('gog') ? 'gog' : 'epic';
+
+    // app_id may be missing for Heroic-imported games — extract it from the LaunchCommand
+    let appId = game.app_id;
+    if (!appId && game.LaunchCommand) {
+        const m = game.LaunchCommand.match(/heroic:\/\/launch\/(?:gog|epic)\/([^\s"]+)/i);
+        if (m) appId = m[1];
+    }
+
+    if (!appId) {
         hideGrinderConfirm();
         _grinderConfirmGame = game;
         document.getElementById('gp-action-title').textContent = 'INSTALL ERROR';
         document.getElementById('gp-game-title').textContent = game.Game;
-        document.getElementById('gp-message').textContent = 'No store app ID found for this game. Open GRINDER directly to install it.';
+        document.getElementById('gp-message').textContent = 'No store app ID found. Open GRINDER directly to install it.';
         document.getElementById('gp-bar').style.width = '0%';
         document.getElementById('gp-cancel-hint').style.display = '';
         document.getElementById('grinder-progress-backdrop').classList.remove('hidden');
@@ -2918,11 +2928,9 @@ async function triggerGrinderInstall() {
         previousGameState = gameState; gameState = 'GRINDER_PROGRESS';
         return;
     }
+
     hideGrinderConfirm();
-    const storeL = (game.Store || '').toLowerCase();
-    const store = storeL.includes('gog') ? 'gog' : 'epic';
-    // Always start with windows; GRINDER headless will handle platform detection
-    const result = await window.api.grinderHeadlessInstall(store, game.app_id, 'windows', _grinderInstallDir);
+    const result = await window.api.grinderHeadlessInstall(store, appId, 'windows', _grinderInstallDir);
     if (!result.ok) { alert(result.error); return; }
     showGrinderProgress(false);
 }
