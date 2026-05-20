@@ -22,6 +22,7 @@
     /* DYNAMIC BLUR TARGETS */
     .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; box-sizing: border-box; overflow: clip; opacity: 1; transition: opacity 0.3s ease-in-out, filter 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
     .hidden { opacity: 0; pointer-events: none; z-index: -1; }
+    #now-playing-widget:not(.hidden) { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
     .is-blurred { filter: blur(15px); pointer-events: none; }
 /* === FIRST-TIME SETUP SCREEN === */
     #setup-screen { z-index: 10; background: linear-gradient(160deg, var(--bg) 0%, var(--bg_menu) 100%); }
@@ -639,7 +640,7 @@
       </div>
     </div>
 
-    <div id="now-playing-widget" class="hidden" style="position: absolute; bottom: 40px; right: 40px; width: 400px; background: var(--bg_panel); border: 2px solid var(--border_solid); border-radius: 15px; padding: 15px; display: flex; gap: 15px; align-items: center; z-index: 2000; box-shadow: 0 15px 40px rgba(0,0,0,0.9); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(50px); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+    <div id="now-playing-widget" class="hidden" style="position: absolute; bottom: 40px; right: 40px; width: 400px; background: var(--bg_panel); border: 2px solid var(--border_solid); border-radius: 15px; padding: 15px; display: flex; gap: 15px; align-items: center; z-index: 2000; box-shadow: 0 15px 40px rgba(0,0,0,0.9); transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform: translateY(50px);">
         <img id="np-cover" src="" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; background: #000; display: none;">
         <div style="flex: 1; overflow: hidden;">
             <div style="color: var(--text_dim); font-size: 14px; font-weight: 900; letter-spacing: 2px; margin-bottom: 5px;">NOW PLAYING</div>
