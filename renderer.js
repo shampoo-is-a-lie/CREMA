@@ -633,7 +633,7 @@ function handleInput(action) {
       if (g.LaunchCommand) {
         const isInstalled = g.Installed == null || g.Installed == 1;
         const stL = (g.Store || '').toLowerCase();
-        if (!isInstalled && (stL.includes('gog') || stL.includes('epic')) && g.app_id) { showGrinderConfirm(g); }
+        if (!isInstalled && (stL.includes('gog') || stL.includes('epic'))) { showGrinderConfirm(g); }
         else { enterSleepMode(g); }
       }
       else if (isManualCategory(g)) { openOverlay("GAME_MENU"); }
@@ -2736,7 +2736,7 @@ function ggpActivateButton() {
       openOSK('LAUNCH_CMD', t('osk.launch_command'), '');
     } else if (playBtnEl?.dataset?.installMode === '1') {
       const stL = (game.Store || '').toLowerCase();
-      if ((stL.includes('gog') || stL.includes('epic')) && game.app_id) { showGrinderConfirm(game); }
+      if (stL.includes('gog') || stL.includes('epic')) { showGrinderConfirm(game); }
     } else if (game.LaunchCommand) { enterSleepMode(game); }
   }
 }
