@@ -44,5 +44,12 @@ contextBridge.exposeInMainWorld('api', {
                                 clearHistory: () => ipcRenderer.invoke('clear-history'),
 
                                 // --- I18N ---
-                                getStrings: (lang) => ipcRenderer.invoke('get-strings', lang)
+                                getStrings: (lang) => ipcRenderer.invoke('get-strings', lang),
+
+                                // --- GRINDER headless install/uninstall ---
+                                grinderGetDefaultInstallDir: () => ipcRenderer.invoke('grinder-get-default-install-dir'),
+                                grinderHeadlessInstall: (store, appId, platform, installDir) => ipcRenderer.invoke('grinder-headless-install', store, appId, platform, installDir),
+                                grinderHeadlessUninstall: (store, appId) => ipcRenderer.invoke('grinder-headless-uninstall', store, appId),
+                                grinderGetProgress: () => ipcRenderer.invoke('grinder-get-progress'),
+                                grinderCancelHeadless: () => ipcRenderer.invoke('grinder-cancel-headless'),
 });

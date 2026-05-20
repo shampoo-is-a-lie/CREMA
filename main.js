@@ -729,3 +729,49 @@ ipcMain.handle('get-music-library', async () => {
 
 ipcMain.handle('get-playlists', () => { try { if (fs.existsSync(playlistsPath)) return JSON.parse(fs.readFileSync(playlistsPath, 'utf8')); } catch(e){} return {}; });
 ipcMain.on('save-playlists', (e, pl) => { try { fs.writeFileSync(playlistsPath, JSON.stringify(pl)); } catch(err){} });
+
+// ── GRINDER headless install/uninstall ────────────────────────────────────────
+const grinderProgressFile = path.join(configDir, 'grinder-progress.json');
+let _headlessProc = null;
+
+function getGrinderDbPath() {
+    const home = os.homedir();
+    return [path.join(home, '.config', 'grinder', 'grinder.db'), path.join(home, '.config', 'GRINDER', 'grinder.db'), path.join(baseDir, 'GRINDERConfig', 'grinder.db')].find(p => fs.existsSync(p)) || null;
+}
+
+ipcMain.handle('grinder-get-default-install-dir', () => {
+    const gDbPath = getGrinderDbPath();
+    if (!gDbPath) return null;
+    try { const gdb = new Database(gDbPath, { readonly: true }); const row = gdb.prepare("SELECT value FROM settings WHERE key='default_install_dir'").get(); gdb.close(); return row?.value || null; } catch { return null; }
+});
+
+ipcMain.handle('grinder-headless-install', (_, store, appId, platform, installDir) => {
+    if (_headlessProc) return { ok: false, error: 'Install already in progress.' };
+    const gPath = findGrinderPath();
+    if (!gPath) return { ok: false, error: 'GRINDER not found.' };
+    const args = ['install', store, appId];
+    if (platform) args.push(platform);
+    if (installDir) args.push(installDir);
+    _headlessProc = spawn(gPath, args, { detached: false, stdio: 'ignore' });
+    _headlessProc.on('close', () => { _headlessProc = null; _grinderMap = null; }); // refresh map on completion
+    return { ok: true };
+});
+
+ipcMain.handle('grinder-headless-uninstall', (_, store, appId) => {
+    if (_headlessProc) return { ok: false, error: 'Operation already in progress.' };
+    const gPath = findGrinderPath();
+    if (!gPath) return { ok: false, error: 'GRINDER not found.' };
+    _headlessProc = spawn(gPath, ['uninstall-headless', store, appId], { detached: false, stdio: 'ignore' });
+    _headlessProc.on('close', () => { _headlessProc = null; _grinderMap = null; });
+    return { ok: true };
+});
+
+ipcMain.handle('grinder-get-progress', () => {
+    try { return JSON.parse(fs.readFileSync(grinderProgressFile, 'utf8')); } catch { return null; }
+});
+
+ipcMain.handle('grinder-cancel-headless', () => {
+    if (_headlessProc) { try { _headlessProc.kill('SIGTERM'); } catch {} _headlessProc = null; }
+    try { fs.unlinkSync(grinderProgressFile); } catch {}
+    return { ok: true };
+});
