@@ -2898,7 +2898,13 @@ async function pollGrinderProgress(isUninstall) {
         document.getElementById('gp-cancel-hint').style.display = 'none';
         if (p.step === 'done') {
             document.getElementById('gp-bar').style.width = '100%';
-            setTimeout(() => { hideGrinderProgress(); refreshDatabase(); }, 2500);
+            // Update Installed status directly in games.db — don't wait for CNGM to sync
+            if (_grinderConfirmGame) {
+                const newVal = isUninstall ? 0 : 1;
+                _grinderConfirmGame.Installed = newVal;
+                window.api.saveDbField({ game: _grinderConfirmGame.Game, field: 'Installed', value: newVal });
+            }
+            setTimeout(() => { hideGrinderProgress(); refreshDatabase(); }, 1500);
         }
     }
 }
