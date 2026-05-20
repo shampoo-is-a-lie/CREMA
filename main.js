@@ -93,6 +93,16 @@ function createWindow () {
     win.loadFile('index.html'); win.webContents.on('did-finish-load', () => { win.webContents.insertCSS('* { cursor: none !important; }'); startSteamInstallWatcher(win); });
 }
 
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        const w = BrowserWindow.getAllWindows()[0];
+        if (w) { if (w.isMinimized()) w.restore(); w.focus(); }
+    });
+}
+
 app.whenReady().then(() => {
     if(!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
     if(!fs.existsSync(musicDir)) fs.mkdirSync(musicDir, { recursive: true });
