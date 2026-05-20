@@ -74,6 +74,8 @@ const ytDlpConfigPath = path.join(binDir, 'yt-dlp.conf');
 // --- UNIFIED PORTABLE PATHS ---
 // User Data (EXTERNAL - Uses baseDir)
 const configDir = path.join(baseDir, 'GameManagerConfig');
+
+
 const dbPath = path.join(configDir, 'games.db');
 const audioCfgPath = path.join(configDir, 'audio.json');
 const playlistsPath = path.join(configDir, 'playlists.json');
@@ -128,11 +130,68 @@ async function fetchDescI18n(appId, enDesc) {
 ipcMain.handle('get-basedir', () => baseDir);
 
 ipcMain.handle('get-games', async () => { if (!db) return { games: [] }; try { return { games: db.prepare("SELECT * FROM games ORDER BY Game ASC").all() }; } catch (err) { return { games: [] }; } });
+
+// ── GRINDER integration ───────────────────────────────────────────────────────
+function findGrinderPath() {
+    try {
+        const f = fs.readdirSync(baseDir).find(n => /^GRINDER\.(AppImage|appimage)$/i.test(n));
+        return f ? path.join(baseDir, f) : null;
+    } catch { return null; }
+}
+
+function readGrinderDb() {
+    const home = os.homedir();
+    const candidates = [
+        path.join(home, '.config', 'grinder', 'grinder.db'),
+        path.join(home, '.config', 'GRINDER', 'grinder.db'),
+        path.join(baseDir, 'GRINDERConfig', 'grinder.db'),
+    ];
+    const dbPath = candidates.find(p => fs.existsSync(p));
+    if (!dbPath) return null;
+    try {
+        const gdb = new Database(dbPath, { readonly: true });
+        const rows = gdb.prepare("SELECT id, app_id, store, installed FROM games WHERE installed=1").all();
+        gdb.close();
+        // Build lookup: app_id → grinder game id
+        const map = new Map();
+        for (const r of rows) {
+            if (r.app_id) map.set(String(r.app_id), r.id);
+        }
+        return map;
+    } catch { return null; }
+}
+
+let _grinderMap = null;   // cached at launch, refreshed lazily
+let _grinderPath = null;
+
+function getGrinderMap() {
+    if (_grinderMap === null) {
+        _grinderPath = findGrinderPath();
+        _grinderMap  = _grinderPath ? (readGrinderDb() || new Map()) : new Map();
+    }
+    return _grinderMap;
+}
+
 ipcMain.on('launch-game', (event, cmd) => {
     if (!cmd) return;
+
+    // 1. GOG/Epic via GRINDER (headless umu-run, same as before)
+    const heroicMatch = cmd.match(/heroic:\/\/launch\/(epic|gog|amazon)\/([^"\s]+)/i);
+    if (heroicMatch) {
+        const appId = heroicMatch[2];
+        const gMap  = getGrinderMap();
+        const gId   = gMap.get(appId);
+        const gPath = _grinderPath || findGrinderPath();
+        if (gId && gPath) {
+            spawn(gPath, ['launch', gId], { detached: true, stdio: 'ignore' }).unref();
+            return;
+        }
+    }
+
     const child = spawn(cmd, [], { shell: true, detached: true, stdio: 'ignore' });
     child.unref();
 });
+
 ipcMain.on('quit-app', () => app.quit());
 const SAVE_DB_ALLOWED_FIELDS = new Set(['FAV', 'WANT_TO_PLAY', 'LaunchCommand', 'Game', 'CoverArt', 'Screenshot', 'DEV', 'PUB', 'RELEASED', 'GENRE', 'METACRITIC', 'Description', 'Description_i18n', 'ProtonTier', 'SteamAppID', 'HLTB_Main', 'Installed']);
 
