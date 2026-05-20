@@ -686,12 +686,12 @@ function handleInput(action) {
   }
   else if (gameState === 'OSK') { handleOSKInput(action); }
   else if (gameState === 'GRINDER_CONFIRM') {
-    if (action === 'SOUTH') { triggerGrinderInstall(); }
-    else if (action === 'EAST') { playSound(sfxBack); hideGrinderConfirm(); }
-    else if (action === 'NORTH') { hideGrinderConfirm(); openOSK('INSTALL_DIR', 'Install Directory', _grinderInstallDir); }
+    if (action === 'ACCEPT') { triggerGrinderInstall(); }
+    else if (action === 'BACK') { playSound(sfxBack); hideGrinderConfirm(); }
+    else if (action === 'Y_BUTTON') { hideGrinderConfirm(); openOSK('INSTALL_DIR', 'Install Directory', _grinderInstallDir); }
   }
   else if (gameState === 'GRINDER_PROGRESS') {
-    if (action === 'EAST') { window.api.grinderCancelHeadless(); hideGrinderProgress(); }
+    if (action === 'BACK') { window.api.grinderCancelHeadless(); hideGrinderProgress(); }
   }
   else if (gameState === 'JUKEBOX' || gameState === 'JUKEBOX_OVERLAY') { handleJukeboxInput(action); }
   else if (['OVERLAY', 'THEME_CATS', 'THEMES', 'MUSIC_STYLE', 'GAME_SCRAPE_MENU', 'CONFIRM_SCRAPE', 'SCRAPE_RESULT', 'GAMEPAD_MENU', 'WAKE_METHOD_MENU', 'START_SCREEN_MENU', 'LANGUAGE_MENU', 'BROWSE_MODE_MENU'].includes(gameState)) {
@@ -2843,17 +2843,17 @@ function _setGrinderProgressStep(step, isUninstall) {
     if (step === 'error') all.forEach((s, i) => { if (i <= Math.max(idx, 0)) _gpStep(`gp-step-${s}`, i === Math.max(idx, 0) ? 'error' : 'done'); });
 }
 
-async function showGrinderConfirm(game) {
+function showGrinderConfirm(game) {
     _grinderConfirmGame = game;
-    if (!_grinderInstallDir) {
-        _grinderInstallDir = await window.api.grinderGetDefaultInstallDir() || '/home/jose/Games/CafeNeurotico';
-    }
+    if (!_grinderInstallDir) _grinderInstallDir = '/home/jose/Games/CafeNeurotico';
     document.getElementById('gc-action-title').textContent = 'INSTALL GAME';
     document.getElementById('gc-game-title').textContent = game.Game;
-    document.getElementById('gc-dir').textContent = defaultDir;
+    document.getElementById('gc-dir').textContent = _grinderInstallDir;
     document.getElementById('grinder-confirm-backdrop').classList.remove('hidden');
     _grinderConfirmActive = true;
     previousGameState = gameState; gameState = 'GRINDER_CONFIRM';
+    // Fetch GRINDER's saved default dir and update if different
+    try { window.api.grinderGetDefaultInstallDir().then(dir => { if (dir) { _grinderInstallDir = dir; document.getElementById('gc-dir').textContent = dir; } }).catch(() => {}); } catch(e) {}
 }
 
 function hideGrinderConfirm() {
