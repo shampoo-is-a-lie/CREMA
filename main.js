@@ -217,7 +217,7 @@ ipcMain.on('launch-game', (event, cmd) => {
     if (!cmd) return;
 
     // 1. GOG/Epic via GRINDER (headless umu-run, same as before)
-    const heroicMatch = cmd.match(/heroic:\/\/launch\/(epic|gog|amazon)\/([^"\s]+)/i);
+    const heroicMatch = cmd.match(/heroic:\/\/launch\/(epic|gog)\/([^"\s]+)/i);
     if (heroicMatch) {
         const appId = heroicMatch[2];
         const gMap  = getGrinderMap();
@@ -280,12 +280,12 @@ function parseHeroicInstalledIds(raw) {
 
 function isHeroicGameInstalled(launchCommand) {
     if (!launchCommand) return null;
-    const match = launchCommand.match(/heroic:\/\/launch\/(epic|gog|amazon)\/([^"\s]+)/i);
+    const match = launchCommand.match(/heroic:\/\/launch\/(epic|gog)\/([^"\s]+)/i);
     if (!match) return null;
     const [, storeType, appId] = match;
     const home = os.homedir();
     const heroicBases = [path.join(home, '.config', 'heroic'), path.join(home, '.var', 'app', 'com.heroicgameslauncher.hgl', 'config', 'heroic')];
-    const rel = { epic: path.join('legendaryConfig','legendary','installed.json'), gog: path.join('gog_store','installed.json'), amazon: path.join('nile_config','nile','installed.json') };
+    const rel = { epic: path.join('legendaryConfig','legendary','installed.json'), gog: path.join('gog_store','installed.json') };
     for (const base of heroicBases) {
         const p = path.join(base, rel[storeType] || '');
         if (!fs.existsSync(p)) continue;
