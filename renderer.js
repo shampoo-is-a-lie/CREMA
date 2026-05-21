@@ -106,7 +106,7 @@ let activeScrapeMode = ''; let scrapeSource = 'STEAM';
 let steamSearchResults = []; let selectedAppId = null; let selectedResolvedName = null;
 let igdbSearchResults = []; let selectedIgdbId = null;
 
-const categories = ["ALL GAMES", "INSTALLED", "STEAM", "GOG", "EPIC", "OTHERS", "PHYSICAL", "EMULATION", "APPS", "WANT TO PLAY", "FAVS"];
+const categories = ["ALL GAMES", "INSTALLED", "STEAM", "GOG", "EPIC", "FLATPAK", "OTHERS", "PHYSICAL", "EMULATION", "APPS", "WANT TO PLAY", "FAVS"];
 
 const THEMES = {
   "DARK GRAY": {bg: "#141414", bg_panel: "rgba(0,0,0,0.5)", bg_menu: "#222222", accent: "#ffffff", accent_menu: "#00e5ff", text_main: "#ffffff", text_sec: "#bbbbbb", text_dim: "#777777", border: "rgba(255,255,255,0.1)", border_solid: "#555555"},
@@ -199,6 +199,8 @@ function convertSafePath(rawPath) {
 let usingKeyboard = false;
 function getBtn(icon) { const iconPath = convertSafePath('assets/gamepad_icons/' + icon + '.png'); return `<span class="gp-btn-masked" style="-webkit-mask-image: url('${iconPath}');"></span>`; }
 function getKey(label) { return `<span class="kb-key">${label}</span>`; }
+const _SVG_LOGOS = new Set(['flatpak']);
+function logoPath(name) { const safe = name.toLowerCase().replace(/ /g, '_'); return convertSafePath(`assets/logos/${safe}${_SVG_LOGOS.has(safe) ? '.svg' : '.png'}`); }
 function getMappedBtn(logicalBtn) {
   const layout = audioCfg.gamepadLayout || "XBOX"; let iconName = logicalBtn;
   if (layout === "XBOX") { const map = { 'SOUTH': 'XBOX_A', 'EAST': 'XBOX_B', 'WEST': 'XBOX_X', 'NORTH': 'XBOX_Y', 'START': 'XBOX_start', 'SELECT': 'XBOX_select' }; if (map[logicalBtn]) iconName = map[logicalBtn]; }
@@ -306,7 +308,7 @@ function startScreensaver() {
   if (audioCfg.screensaver === 'CN WALLPAPERS') playRandomWallpaper(); else playRandomScreenshot();
 }
 
-function updateSSUI(game) { if (!game) return; document.getElementById('ss-game-title').innerText = game.Game; const scL = document.getElementById('ss-lbl-y'); scL.style.color = (game.FAV === 'YES') ? 'var(--accent)' : 'var(--text_sec)'; const wtL = document.getElementById('ss-lbl-x'); wtL.style.color = (game.WANT_TO_PLAY === 'YES') ? 'var(--accent)' : 'var(--text_sec)'; const storeContainer = document.getElementById('ss-store-icons'); storeContainer.innerHTML = ''; if (game.Store && String(game.Store).trim() !== "") { const stores = String(game.Store).split(',').map(s => s.trim().toLowerCase().replace(/\s+/g, '_')).filter(s => s !== ""); stores.forEach(s => { const div = document.createElement('div'); div.className = 'store-icon'; const path = convertSafePath('assets/logos/' + s + '.png'); div.style.webkitMaskImage = `url('${path}')`; storeContainer.appendChild(div); }); } }
+function updateSSUI(game) { if (!game) return; document.getElementById('ss-game-title').innerText = game.Game; const scL = document.getElementById('ss-lbl-y'); scL.style.color = (game.FAV === 'YES') ? 'var(--accent)' : 'var(--text_sec)'; const wtL = document.getElementById('ss-lbl-x'); wtL.style.color = (game.WANT_TO_PLAY === 'YES') ? 'var(--accent)' : 'var(--text_sec)'; const storeContainer = document.getElementById('ss-store-icons'); storeContainer.innerHTML = ''; if (game.Store && String(game.Store).trim() !== "") { const stores = String(game.Store).split(',').map(s => s.trim().toLowerCase().replace(/\s+/g, '_')).filter(s => s !== ""); stores.forEach(s => { const div = document.createElement('div'); div.className = 'store-icon'; div.style.webkitMaskImage = `url('${logoPath(s)}')`; storeContainer.appendChild(div); }); } }
 
 async function playRandomWallpaper() {
   if (gameState !== 'SCREENSAVER') return; document.getElementById('ss-video').style.display = 'none';
@@ -838,7 +840,7 @@ function applyLiveFilters(preserveIndex = false) {
 
   let baseFiltered = allGames.filter(g => {
     const store = g.Store ? String(g.Store).toLowerCase() : ""; const title = g.Game ? String(g.Game).toLowerCase() : ""; let matchCat = false;
-    if (catName === "ALL GAMES") matchCat = true; else if (catName === "INSTALLED") { const isManual = store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps"); matchCat = isManual ? !!g.LaunchCommand : g.Installed == 1; } else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES';
+    if (catName === "ALL GAMES") matchCat = true; else if (catName === "INSTALLED") { const isManual = store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps"); matchCat = isManual ? !!g.LaunchCommand : g.Installed == 1; } else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "FLATPAK") matchCat = store.includes("flatpak"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES';
     if (!matchCat) return false; if (q !== "" && !title.includes(q)) return false; return true;
   });
 
@@ -1331,7 +1333,7 @@ function updateDownloadProgressBar(percentage) { const fillEl = document.getElem
 function closeProgressOverlay() { document.getElementById('progress-backdrop').classList.add('hidden'); gameState = 'MAIN'; setBlur(false); updateGameSelection(); }
 
 function getMediaForCategory(catName) {
-  const filtered = allGames.filter(g => { const s = g.Store ? String(g.Store).toLowerCase() : ''; if (catName === "ALL GAMES") return true; if (catName === "INSTALLED") { const isManual = s.includes("others") || s.includes("emulation") || s.includes("physical") || s.includes("apps"); return isManual ? !!g.LaunchCommand : g.Installed == 1; } if (catName === "STEAM") return s.includes("steam"); if (catName === "GOG") return s.includes("gog"); if (catName === "EPIC") return s.includes("epic"); if (catName === "OTHERS") return s.includes("others"); if (catName === "PHYSICAL") return s.includes("physical"); if (catName === "EMULATION") return s.includes("emulation"); if (catName === "APPS") return s.includes("apps"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; return true; });
+  const filtered = allGames.filter(g => { const s = g.Store ? String(g.Store).toLowerCase() : ''; if (catName === "ALL GAMES") return true; if (catName === "INSTALLED") { const isManual = s.includes("others") || s.includes("emulation") || s.includes("physical") || s.includes("apps"); return isManual ? !!g.LaunchCommand : g.Installed == 1; } if (catName === "STEAM") return s.includes("steam"); if (catName === "GOG") return s.includes("gog"); if (catName === "EPIC") return s.includes("epic"); if (catName === "FLATPAK") return s.includes("flatpak"); if (catName === "OTHERS") return s.includes("others"); if (catName === "PHYSICAL") return s.includes("physical"); if (catName === "EMULATION") return s.includes("emulation"); if (catName === "APPS") return s.includes("apps"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; return true; });
   let media = [];
   filtered.forEach(g => { if (g.Screenshot && String(g.Screenshot).trim()) media.push(...String(g.Screenshot).split('|').filter(s => s.trim())); });
   if (media.length < 3) filtered.forEach(g => { if (g.CoverArt && String(g.CoverArt).trim()) media.push(String(g.CoverArt)); });
@@ -1383,7 +1385,7 @@ function transitionToMain() {
   document.getElementById('main-screen').classList.remove('hidden');
   const catName = categories[currentCategoryIndex];
   const safeCatName = catName.toLowerCase().replace(/ /g, '_');
-  const catIconPath = convertSafePath('assets/logos/' + safeCatName + '.png');
+  const catIconPath = logoPath(safeCatName);
   document.getElementById('main-header').innerHTML = `<div class="header-icon" style="-webkit-mask-image: url('${catIconPath}');"></div><div>${tCat(catName)}</div>`;
   searchQuery = ""; applyLiveFilters(false);
 }
@@ -1399,8 +1401,7 @@ function buildListTrack() {
   const all = [...categories.slice(-LIST_PHANTOMS), ...categories, ...categories.slice(0, LIST_PHANTOMS)];
   all.forEach(cat => {
     const d = document.createElement('div'); d.className = 'cat-item';
-    const safe = cat.toLowerCase().replace(/ /g, '_');
-    const icon = convertSafePath(`assets/logos/${safe}.png`);
+    const icon = logoPath(cat);
     d.innerHTML = `<div class="cat-icon" style="-webkit-mask-image: url('${icon}');"></div><div>${tCat(cat)}</div>`;
     track.appendChild(d);
   });
@@ -1457,7 +1458,7 @@ function renderCarouselMode() {
   const track = document.getElementById('carousel-track'); if (!track) return;
   track.innerHTML = '';
   const all = [...categories.slice(-CAROUSEL_PHANTOMS), ...categories, ...categories.slice(0, CAROUSEL_PHANTOMS)];
-  all.forEach(cat => { const item = document.createElement('div'); item.className = 'carousel-item'; const safe = cat.toLowerCase().replace(/ /g, '_'); const icon = convertSafePath(`assets/logos/${safe}.png`); item.innerHTML = `<div class="carousel-item-icon" style="-webkit-mask-image:url('${icon}');"></div><div class="carousel-item-label">${tCat(cat)}</div>`; track.appendChild(item); });
+  all.forEach(cat => { const item = document.createElement('div'); item.className = 'carousel-item'; const icon = logoPath(cat); item.innerHTML = `<div class="carousel-item-icon" style="-webkit-mask-image:url('${icon}');"></div><div class="carousel-item-label">${tCat(cat)}</div>`; track.appendChild(item); });
   carouselRawPos = currentCategoryIndex + CAROUSEL_PHANTOMS;
   updateCarouselTransform(false); updateCarouselClasses();
   fillMosaicIn(categories[currentCategoryIndex], 'carousel-hero-icon', 'carousel-hero-mosaic');
@@ -1501,7 +1502,7 @@ function renderGridMode() {
   cells.innerHTML = '';
   categories.forEach((cat, i) => {
     const cell = document.createElement('div'); cell.className = 'grid-cell'; cell.id = `grid-cell-${i}`;
-    const safe = cat.toLowerCase().replace(/ /g, '_'); const icon = convertSafePath(`assets/logos/${safe}.png`);
+    const icon = logoPath(cat);
     const media = getMediaForCategory(cat);
     const bg = media.length > 0 ? `<img class="grid-cell-bg" src="${convertSafePath(media[0])}" alt="">` : '';
     cell.innerHTML = `${bg}<div class="grid-cell-grad"></div><div class="grid-cell-content"><div class="grid-cell-icon" style="-webkit-mask-image:url('${icon}');"></div><div class="grid-cell-name">${tCat(cat)}</div></div>`;
@@ -1662,7 +1663,7 @@ function updateGameSelection() {
       else { bg.src = blank; mini.src = blank; mini.classList.add('hidden'); }
 
       const storeContainer = document.getElementById('store-icons');
-      if (storeContainer) { storeContainer.innerHTML = ''; if (game.Store && String(game.Store).trim() !== "") { const stores = String(game.Store).split(',').map(s => s.trim().toLowerCase().replace(/\s+/g, '_')).filter(s => s !== ""); stores.forEach(s => { const div = document.createElement('div'); div.className = 'store-icon'; const path = convertSafePath('assets/logos/' + s + '.png'); div.style.webkitMaskImage = `url('${path}')`; storeContainer.appendChild(div); }); } }
+      if (storeContainer) { storeContainer.innerHTML = ''; if (game.Store && String(game.Store).trim() !== "") { const stores = String(game.Store).split(',').map(s => s.trim().toLowerCase().replace(/\s+/g, '_')).filter(s => s !== ""); stores.forEach(s => { const div = document.createElement('div'); div.className = 'store-icon'; div.style.webkitMaskImage = `url('${logoPath(s)}')`; storeContainer.appendChild(div); }); } }
 
       trailerTimeout = setTimeout(() => {
         let hasScreenshots = false;
@@ -2205,6 +2206,7 @@ function getGalleryStoreLogo(store) {
   if (s.includes('steam'))    return 'assets/logos/steam.png';
   if (s.includes('gog'))      return 'assets/logos/gog.png';
   if (s.includes('epic'))     return 'assets/logos/epic.png';
+  if (s.includes('flatpak'))  return 'assets/logos/flatpak.svg';
   if (s.includes('physical')) return 'assets/logos/physical.png';
   if (s.includes('emulat'))   return 'assets/logos/emulation.png';
   if (s.includes('app'))      return 'assets/logos/apps.png';
@@ -2218,6 +2220,7 @@ function matchCatForGallery(g, catName) {
   if (catName === "STEAM") return store.includes("steam");
   if (catName === "GOG") return store.includes("gog");
   if (catName === "EPIC") return store.includes("epic");
+  if (catName === "FLATPAK") return store.includes("flatpak");
   if (catName === "PHYSICAL") return store.includes("physical");
   if (catName === "EMULATION") return store.includes("emulation");
   if (catName === "APPS") return store.includes("apps");
