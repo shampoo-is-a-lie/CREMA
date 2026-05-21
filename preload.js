@@ -53,4 +53,10 @@ contextBridge.exposeInMainWorld('api', {
                                 grinderHeadlessUninstall: (store, appId) => ipcRenderer.invoke('grinder-headless-uninstall', store, appId),
                                 grinderGetProgress: () => ipcRenderer.invoke('grinder-get-progress'),
                                 grinderCancelHeadless: () => ipcRenderer.invoke('grinder-cancel-headless'),
+
+                                // --- FLATPAK ---
+                                scanFlatpak: () => ipcRenderer.invoke('scan-flatpak'),
+                                findFlatpakIcon: (n) => ipcRenderer.invoke('find-flatpak-icon', n),
+                                readFileBase64: (p) => ipcRenderer.invoke('read-file-base64', p),
+                                saveFlatpakArt: (id, c, h, i) => ipcRenderer.invoke('save-flatpak-art', id, c, h, i),
 });
