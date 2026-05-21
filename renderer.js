@@ -449,6 +449,7 @@ async function boot() {
   applyI18nToDOM();
   updateAppScale(); await initAudio(); applyTheme(activeTheme); renderHardwareIcons();
   const recSetting = await window.api.getSetting('crema_recent_count'); if (recSetting !== null) { recentGamesCount = parseInt(recSetting, 10); }
+  await window.api.syncGrinderInstalled().catch(() => {});
   const res = await window.api.getGames(); allGames = (res.games || []).filter(g => g.Game && String(g.Game).trim() !== "");
   for (let g of allGames) { if (g.Screenshot && String(g.Screenshot).trim() !== "") { let paths = String(g.Screenshot).split('|').filter(s => s.trim() !== ""); paths.forEach(p => availableScreenshots.push({ path: p, game: g })); } }
   let prog = 0; const bar = document.getElementById('splash-bar'); const txt = document.getElementById('splash-text');
@@ -2898,13 +2899,9 @@ async function pollGrinderProgress(isUninstall) {
         document.getElementById('gp-cancel-hint').style.display = 'none';
         if (p.step === 'done') {
             document.getElementById('gp-bar').style.width = '100%';
-            // Update Installed status directly in games.db — don't wait for CNGM to sync
-            if (_grinderConfirmGame) {
-                const newVal = isUninstall ? 0 : 1;
-                _grinderConfirmGame.Installed = newVal;
-                window.api.saveDbField({ game: _grinderConfirmGame.Game, field: 'Installed', value: newVal });
-            }
-            setTimeout(() => { hideGrinderProgress(); refreshDatabase(); }, 1500);
+            window.api.syncGrinderInstalled().catch(() => {}).finally(() => {
+                hideGrinderProgress(); refreshDatabase();
+            });
         }
     }
 }

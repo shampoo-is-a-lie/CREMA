@@ -183,6 +183,36 @@ function getGrinderMap() {
     return _grinderMap;
 }
 
+// Sync installed/uninstalled status from GRINDER's DB into CREMA's games.db
+// Same logic as CNGM's grinder-status + sync-all-grinder-games
+function syncInstalledFromGrinder() {
+    if (!db) return;
+    const home = os.homedir();
+    const candidates = [
+        path.join(home, '.config', 'grinder', 'grinder.db'),
+        path.join(home, '.config', 'GRINDER', 'grinder.db'),
+        path.join(baseDir, 'GRINDERConfig', 'grinder.db'),
+    ];
+    const gDbPath = candidates.find(p => fs.existsSync(p));
+    if (!gDbPath) return;
+    try {
+        const gdb = new Database(gDbPath, { readonly: true });
+        const rows = gdb.prepare("SELECT id, app_id, store, installed FROM games").all();
+        gdb.close();
+        for (const r of rows) {
+            if (!r.app_id) continue;
+            const val = r.installed ? 1 : 0;
+            const res = db.prepare("UPDATE games SET Installed=? WHERE LaunchCommand LIKE ?")
+                          .run(val, `%${r.app_id}%`);
+            if (res.changes === 0)
+                db.prepare("UPDATE games SET Installed=? WHERE app_id=?").run(val, r.app_id);
+        }
+        _grinderMap = null; // invalidate map so launch routing picks up changes
+    } catch {}
+}
+
+ipcMain.handle('sync-grinder-installed', () => { syncInstalledFromGrinder(); return true; });
+
 ipcMain.on('launch-game', (event, cmd) => {
     if (!cmd) return;
 
