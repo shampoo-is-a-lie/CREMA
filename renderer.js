@@ -106,7 +106,7 @@ let activeScrapeMode = ''; let scrapeSource = 'STEAM';
 let steamSearchResults = []; let selectedAppId = null; let selectedResolvedName = null;
 let igdbSearchResults = []; let selectedIgdbId = null;
 
-const categories = ["ALL GAMES", "INSTALLED", "STEAM", "GOG", "EPIC", "AMAZON", "OTHERS", "PHYSICAL", "EMULATION", "APPS", "WANT TO PLAY", "FAVS"];
+const categories = ["ALL GAMES", "INSTALLED", "STEAM", "GOG", "EPIC", "OTHERS", "PHYSICAL", "EMULATION", "APPS", "WANT TO PLAY", "FAVS"];
 
 const THEMES = {
   "DARK GRAY": {bg: "#141414", bg_panel: "rgba(0,0,0,0.5)", bg_menu: "#222222", accent: "#ffffff", accent_menu: "#00e5ff", text_main: "#ffffff", text_sec: "#bbbbbb", text_dim: "#777777", border: "rgba(255,255,255,0.1)", border_solid: "#555555"},
