@@ -19,7 +19,7 @@ const CAT_KEYS = { "ALL GAMES": "cat.all_games", "OTHERS": "cat.others", "PHYSIC
 
 function isManualCategory(game) {
     const s = (game.Store || '').toLowerCase();
-    return /physical|others|emulation|apps/.test(s) && !/steam|epic|gog|heroic/.test(s);
+    return /physical|others|emulation|apps/.test(s) && !/steam|epic|gog|heroic|itch/.test(s);
 }
 
 function getInstallCommand(game) {
@@ -106,7 +106,7 @@ let activeScrapeMode = ''; let scrapeSource = 'STEAM';
 let steamSearchResults = []; let selectedAppId = null; let selectedResolvedName = null;
 let igdbSearchResults = []; let selectedIgdbId = null;
 
-const categories = ["ALL GAMES", "INSTALLED", "STEAM", "GOG", "EPIC", "FLATPAK", "OTHERS", "PHYSICAL", "EMULATION", "APPS", "WANT TO PLAY", "FAVS"];
+const categories = ["ALL GAMES", "INSTALLED", "STEAM", "GOG", "EPIC", "FLATPAK", "ITCH", "OTHERS", "PHYSICAL", "EMULATION", "APPS", "WANT TO PLAY", "FAVS"];
 
 const THEMES = {
   "DARK GRAY": {bg: "#141414", bg_panel: "rgba(0,0,0,0.5)", bg_menu: "#222222", accent: "#ffffff", accent_menu: "#00e5ff", text_main: "#ffffff", text_sec: "#bbbbbb", text_dim: "#777777", border: "rgba(255,255,255,0.1)", border_solid: "#555555"},
@@ -199,7 +199,7 @@ function convertSafePath(rawPath) {
 let usingKeyboard = false;
 function getBtn(icon) { const iconPath = convertSafePath('assets/gamepad_icons/' + icon + '.png'); return `<span class="gp-btn-masked" style="-webkit-mask-image: url('${iconPath}');"></span>`; }
 function getKey(label) { return `<span class="kb-key">${label}</span>`; }
-const _SVG_LOGOS = new Set(['flatpak']);
+const _SVG_LOGOS = new Set(['flatpak', 'itch']);
 function logoPath(name) { const safe = name.toLowerCase().replace(/ /g, '_'); return convertSafePath(`assets/logos/${safe}${_SVG_LOGOS.has(safe) ? '.svg' : '.png'}`); }
 
 // ── FLATPAK SCAN + ART GENERATION ────────────────────────────────────────
@@ -919,7 +919,7 @@ function applyLiveFilters(preserveIndex = false) {
 
   let baseFiltered = allGames.filter(g => {
     const store = g.Store ? String(g.Store).toLowerCase() : ""; const title = g.Game ? String(g.Game).toLowerCase() : ""; let matchCat = false;
-    if (catName === "ALL GAMES") matchCat = true; else if (catName === "INSTALLED") { const isManual = store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps"); matchCat = isManual ? !!g.LaunchCommand : g.Installed == 1; } else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "FLATPAK") matchCat = store.includes("flatpak"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES';
+    if (catName === "ALL GAMES") matchCat = true; else if (catName === "INSTALLED") { const isManual = store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps"); matchCat = isManual ? !!g.LaunchCommand : g.Installed == 1; } else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "FLATPAK") matchCat = store.includes("flatpak"); else if (catName === "ITCH") matchCat = store.includes("itch"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES';
     if (!matchCat) return false; if (q !== "" && !title.includes(q)) return false; return true;
   });
 
@@ -1412,7 +1412,7 @@ function updateDownloadProgressBar(percentage) { const fillEl = document.getElem
 function closeProgressOverlay() { document.getElementById('progress-backdrop').classList.add('hidden'); gameState = 'MAIN'; setBlur(false); updateGameSelection(); }
 
 function getMediaForCategory(catName) {
-  const filtered = allGames.filter(g => { const s = g.Store ? String(g.Store).toLowerCase() : ''; if (catName === "ALL GAMES") return true; if (catName === "INSTALLED") { const isManual = s.includes("others") || s.includes("emulation") || s.includes("physical") || s.includes("apps"); return isManual ? !!g.LaunchCommand : g.Installed == 1; } if (catName === "STEAM") return s.includes("steam"); if (catName === "GOG") return s.includes("gog"); if (catName === "EPIC") return s.includes("epic"); if (catName === "FLATPAK") return s.includes("flatpak"); if (catName === "OTHERS") return s.includes("others"); if (catName === "PHYSICAL") return s.includes("physical"); if (catName === "EMULATION") return s.includes("emulation"); if (catName === "APPS") return s.includes("apps"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; return true; });
+  const filtered = allGames.filter(g => { const s = g.Store ? String(g.Store).toLowerCase() : ''; if (catName === "ALL GAMES") return true; if (catName === "INSTALLED") { const isManual = s.includes("others") || s.includes("emulation") || s.includes("physical") || s.includes("apps"); return isManual ? !!g.LaunchCommand : g.Installed == 1; } if (catName === "STEAM") return s.includes("steam"); if (catName === "GOG") return s.includes("gog"); if (catName === "EPIC") return s.includes("epic"); if (catName === "FLATPAK") return s.includes("flatpak"); if (catName === "ITCH") return s.includes("itch"); if (catName === "OTHERS") return s.includes("others"); if (catName === "PHYSICAL") return s.includes("physical"); if (catName === "EMULATION") return s.includes("emulation"); if (catName === "APPS") return s.includes("apps"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; return true; });
   let media = [];
   filtered.forEach(g => { if (g.Screenshot && String(g.Screenshot).trim()) media.push(...String(g.Screenshot).split('|').filter(s => s.trim())); });
   if (media.length < 3) filtered.forEach(g => { if (g.CoverArt && String(g.CoverArt).trim()) media.push(String(g.CoverArt)); });
@@ -2287,6 +2287,7 @@ function getGalleryStoreLogo(store) {
   if (s.includes('gog'))      return 'assets/logos/gog.png';
   if (s.includes('epic'))     return 'assets/logos/epic.png';
   if (s.includes('flatpak'))  return 'assets/logos/flatpak.svg';
+  if (s.includes('itch'))    return 'assets/logos/itch.svg';
   if (s.includes('physical')) return 'assets/logos/physical.png';
   if (s.includes('emulat'))   return 'assets/logos/emulation.png';
   if (s.includes('app'))      return 'assets/logos/apps.png';
@@ -2301,6 +2302,7 @@ function matchCatForGallery(g, catName) {
   if (catName === "GOG") return store.includes("gog");
   if (catName === "EPIC") return store.includes("epic");
   if (catName === "FLATPAK") return store.includes("flatpak");
+  if (catName === "ITCH") return store.includes("itch");
   if (catName === "PHYSICAL") return store.includes("physical");
   if (catName === "EMULATION") return store.includes("emulation");
   if (catName === "APPS") return store.includes("apps");
