@@ -54,6 +54,9 @@ contextBridge.exposeInMainWorld('api', {
                                 grinderGetProgress: () => ipcRenderer.invoke('grinder-get-progress'),
                                 grinderCancelHeadless: () => ipcRenderer.invoke('grinder-cancel-headless'),
 
+                                // --- PICO-8 ---
+                                scanPico8: () => ipcRenderer.invoke('scan-pico8'),
+
                                 // --- FLATPAK ---
                                 scanFlatpak: () => ipcRenderer.invoke('scan-flatpak'),
                                 findFlatpakIcon: (n) => ipcRenderer.invoke('find-flatpak-icon', n),

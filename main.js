@@ -229,6 +229,14 @@ ipcMain.on('launch-game', (event, cmd) => {
         }
     }
 
+    // 2. PICO-8 cart launch
+    if (cmd.startsWith('pico8-cart:')) {
+        const cartPath = cmd.slice('pico8-cart:'.length);
+        const bin = _getPico8Bin();
+        if (bin) spawn(bin, ['-run', cartPath], { detached: true, stdio: 'ignore' }).unref();
+        return;
+    }
+
     const child = spawn(cmd, [], { shell: true, detached: true, stdio: 'ignore' });
     child.unref();
 });
@@ -878,6 +886,75 @@ ipcMain.handle('find-flatpak-icon', (e, iconName) => {
 ipcMain.handle('read-file-base64', (e, filePath) => {
     try { return fs.readFileSync(filePath).toString('base64'); } catch { return null; }
 });
+
+// ── PICO-8 ────────────────────────────────────────────────────────────────
+
+function humanizeCartName(filename) {
+    let name = filename.replace(/\.p8\.png$/, '').replace(/\.p8$/, '');
+    name = name.replace(/_\d+$/, '');
+    name = name.replace(/[_-]+/g, ' ').trim();
+    return name.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || filename;
+}
+
+function _getPico8Bin() {
+    const row = db.prepare("SELECT value FROM settings WHERE key='pico8_path'").get();
+    if (row?.value && fs.existsSync(row.value)) return row.value;
+    const pico8Dir = path.join(baseDir, 'GameManagerConfig', 'pico8');
+    for (const n of ['pico8', 'pico8_dyn', 'pico8_64']) {
+        const p = path.join(pico8Dir, n);
+        if (fs.existsSync(p)) return p;
+    }
+    return null;
+}
+
+ipcMain.handle('scan-pico8', () => {
+    if (!db) return { count: 0 };
+    const cartsDir = path.join(baseDir, 'GameManagerConfig', 'pico8', 'carts');
+    const imagesDir = path.join(baseDir, 'GameManagerConfig', 'images');
+    try { fs.mkdirSync(cartsDir, { recursive: true }); } catch {}
+    let files;
+    try { files = fs.readdirSync(cartsDir); } catch { return { count: 0 }; }
+
+    const found = new Set();
+
+    const setCartCover = (rowId, cartPath) => {
+        try {
+            const coverFile = `${rowId}_p8_cover.png`;
+            fs.copyFileSync(cartPath, path.join(imagesDir, coverFile));
+            db.prepare("UPDATE games SET CoverArt=? WHERE id=?").run(`GameManagerConfig/images/${coverFile}`, rowId);
+        } catch {}
+    };
+
+    for (const file of files) {
+        const hasPng = file.endsWith('.p8.png');
+        const hasP8  = !hasPng && file.endsWith('.p8');
+        if (!hasPng && !hasP8) continue;
+        const cartPath = path.join(cartsDir, file);
+        const launchCmd = `pico8-cart:${cartPath}`;
+        found.add(launchCmd);
+        const name = humanizeCartName(file);
+        const row = db.prepare("SELECT id, Store, CoverArt FROM games WHERE LaunchCommand = ?").get(launchCmd);
+        if (row) {
+            const stores = (row.Store || '').split(',').map(s => s.trim());
+            if (!stores.some(s => s.toLowerCase() === 'pico-8'))
+                db.prepare("UPDATE games SET Store=?, Installed=1 WHERE id=?").run([...stores, 'PICO-8'].join(', '), row.id);
+            else
+                db.prepare("UPDATE games SET Installed=1 WHERE id=?").run(row.id);
+            if (!row.CoverArt && hasPng) setCartCover(row.id, cartPath);
+        } else {
+            const info = db.prepare("INSERT INTO games (Game,Store,LaunchCommand,Installed) VALUES (?,?,?,1)").run(name, 'PICO-8', launchCmd);
+            if (hasPng) setCartCover(info.lastInsertRowid, cartPath);
+        }
+    }
+
+    const all = db.prepare("SELECT id, LaunchCommand FROM games WHERE LaunchCommand LIKE 'pico8-cart:%'").all();
+    for (const row of all) {
+        if (!found.has(row.LaunchCommand)) db.prepare("DELETE FROM games WHERE id=?").run(row.id);
+    }
+    return { count: found.size };
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 ipcMain.handle('save-flatpak-art', (e, gameId, coverB64, heroB64, iconSrcPath) => {
     const ts = Date.now();
