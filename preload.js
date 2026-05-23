@@ -47,6 +47,7 @@ contextBridge.exposeInMainWorld('api', {
                                 getStrings: (lang) => ipcRenderer.invoke('get-strings', lang),
 
                                 // --- GRINDER headless install/uninstall ---
+                                openGrinderGui: (term) => ipcRenderer.invoke('open-grinder-gui', term),
                                 syncGrinderInstalled: () => ipcRenderer.invoke('sync-grinder-installed'),
                                 grinderGetDefaultInstallDir: () => ipcRenderer.invoke('grinder-get-default-install-dir'),
                                 grinderHeadlessInstall: (store, appId, platform, installDir) => ipcRenderer.invoke('grinder-headless-install', store, appId, platform, installDir),

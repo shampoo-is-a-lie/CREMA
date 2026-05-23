@@ -161,7 +161,7 @@ function readGrinderDb() {
     if (!dbPath) return null;
     try {
         const gdb = new Database(dbPath, { readonly: true });
-        const rows = gdb.prepare("SELECT id, app_id, store, installed FROM games WHERE installed=1").all();
+        const rows = gdb.prepare("SELECT id, app_id, store, installed FROM games WHERE installed=1 AND (is_dlc IS NULL OR is_dlc=0)").all();
         gdb.close();
         // Build lookup: app_id → grinder game id
         const map = new Map();
@@ -197,10 +197,10 @@ function syncInstalledFromGrinder() {
     if (!gDbPath) return;
     try {
         const gdb = new Database(gDbPath, { readonly: true });
-        const rows = gdb.prepare("SELECT id, app_id, store, installed FROM games").all();
+        const rows = gdb.prepare("SELECT id, app_id, store, installed, is_dlc FROM games").all();
         gdb.close();
         for (const r of rows) {
-            if (!r.app_id) continue;
+            if (!r.app_id || r.is_dlc) continue;
             const val = r.installed ? 1 : 0;
             const res = db.prepare("UPDATE games SET Installed=? WHERE LaunchCommand LIKE ?")
                           .run(val, `%${r.app_id}%`);
@@ -781,6 +781,14 @@ ipcMain.handle('grinder-get-default-install-dir', () => {
     const gDbPath = getGrinderDbPath();
     if (!gDbPath) return null;
     try { const gdb = new Database(gDbPath, { readonly: true }); const row = gdb.prepare("SELECT value FROM settings WHERE key='default_install_dir'").get(); gdb.close(); return row?.value || null; } catch { return null; }
+});
+
+ipcMain.handle('open-grinder-gui', (_, searchTerm) => {
+    const gPath = findGrinderPath();
+    if (!gPath) return { ok: false };
+    const args = searchTerm ? ['search', searchTerm] : [];
+    spawn(gPath, args, { detached: true, stdio: 'ignore' }).unref();
+    return { ok: true };
 });
 
 ipcMain.handle('grinder-headless-install', (_, store, appId, platform, installDir) => {

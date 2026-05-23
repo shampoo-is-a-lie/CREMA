@@ -18,6 +18,7 @@ function t(key, vars = {}) {
 const CAT_KEYS = { "ALL GAMES": "cat.all_games", "OTHERS": "cat.others", "PHYSICAL": "cat.physical", "EMULATION": "cat.emulation", "APPS": "cat.apps", "WANT TO PLAY": "cat.want", "FAVS": "cat.favs", "INSTALLED": "cat.installed" };
 
 function isManualCategory(game) {
+    if (game.GrinderGameId) return false;
     const s = (game.Store || '').toLowerCase();
     return /physical|others|emulation|apps/.test(s) && !/steam|epic|gog|heroic|itch|pico/.test(s);
 }
@@ -924,7 +925,7 @@ function applyLiveFilters(preserveIndex = false) {
 
   let baseFiltered = allGames.filter(g => {
     const store = g.Store ? String(g.Store).toLowerCase() : ""; const title = g.Game ? String(g.Game).toLowerCase() : ""; let matchCat = false;
-    if (catName === "ALL GAMES") matchCat = true; else if (catName === "INSTALLED") { const isManual = store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps"); matchCat = isManual ? !!g.LaunchCommand : g.Installed == 1; } else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "FLATPAK") matchCat = store.includes("flatpak"); else if (catName === "ITCH") matchCat = store.includes("itch"); else if (catName === "PICO-8") matchCat = store.includes("pico"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES';
+    if (catName === "ALL GAMES") matchCat = true; else if (catName === "INSTALLED") { const isManual = !g.GrinderGameId && (store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps")); matchCat = isManual ? !!g.LaunchCommand : g.Installed == 1; } else if (catName === "STEAM") matchCat = store.includes("steam"); else if (catName === "GOG") matchCat = store.includes("gog"); else if (catName === "EPIC") matchCat = store.includes("epic"); else if (catName === "FLATPAK") matchCat = store.includes("flatpak"); else if (catName === "ITCH") matchCat = store.includes("itch"); else if (catName === "PICO-8") matchCat = store.includes("pico"); else if (catName === "OTHERS") matchCat = store.includes("others"); else if (catName === "PHYSICAL") matchCat = store.includes("physical"); else if (catName === "EMULATION") matchCat = store.includes("emulation"); else if (catName === "APPS") matchCat = store.includes("apps"); else if (catName === "FAVS") matchCat = g.FAV === 'YES'; else if (catName === "WANT TO PLAY") matchCat = g.WANT_TO_PLAY === 'YES';
     if (!matchCat) return false; if (q !== "" && !title.includes(q)) return false; return true;
   });
 
@@ -1033,7 +1034,7 @@ async function openOverlay(type) {
     const game = filteredGames[currentGameIndex]; const localUrl = await window.api.checkLocalTrailer(game.Game);
     const favStr = game.FAV === "YES" ? t('game_menu.remove_fav') : t('game_menu.add_fav'); const wantStr = game.WANT_TO_PLAY === "YES" ? t('game_menu.remove_want') : t('game_menu.add_want'); const cmdStr = (game.LaunchCommand && game.LaunchCommand.trim() !== "") ? t('game_menu.edit_launch') : t('game_menu.add_launch'); const trStr = localUrl ? t('game_menu.delete_trailer') : t('game_menu.download_trailer');
     const storeL = (game.Store || '').toLowerCase();
-    const isGrinderStore = (storeL.includes('gog') || storeL.includes('epic')) && game.app_id;
+    const isGrinderStore = ((storeL.includes('gog') || storeL.includes('epic')) && game.app_id) || !!game.GrinderGameId;
     const isInstalled = game.Installed == null || game.Installed == 1;
     const grinderItems = isGrinderStore ? (isInstalled ? ['§GRINDER', 'Uninstall via GRINDER'] : ['§GRINDER', 'Install via GRINDER']) : [];
     renderGenericOverlay(t('menu.game_options'), [trStr, favStr, wantStr, cmdStr, t('game_menu.rename'), t('game_menu.scraping'), ...grinderItems, t('common.close_menu')]);
@@ -1147,7 +1148,7 @@ function executeOverlayAction() {
     else if (action === t('game_menu.scraping')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openGameScrapeMenu(); }
     else if (action === t('game_menu.download_trailer')) openSearchOverlay();
     else if (action === t('game_menu.delete_trailer')) { clearMediaLoaders(); window.api.deleteTrailer(filteredGames[currentGameIndex].Game).then(() => { setDebug("🗑️ Trailer Deleted", true); refreshDatabase(); closeOverlay(); }); }
-    else if (action === 'Install via GRINDER') { closeOverlay(); showGrinderConfirm(filteredGames[currentGameIndex]); }
+    else if (action === 'Install via GRINDER') { closeOverlay(); const _ig = filteredGames[currentGameIndex]; const _stL = (_ig.Store || '').toLowerCase(); if (_ig.GrinderGameId && !_stL.includes('gog') && !_stL.includes('epic')) { window.api.openGrinderGui(_ig.Game); } else { showGrinderConfirm(_ig); } }
     else if (action === 'Uninstall via GRINDER') { closeOverlay(); triggerGrinderUninstall(filteredGames[currentGameIndex]); }
     else if (action === t('menu.sound_settings')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openSoundOverlay(); }
     else if (action === t('menu.keybindings')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openKeybindingsOverlay(); }
@@ -1417,7 +1418,7 @@ function updateDownloadProgressBar(percentage) { const fillEl = document.getElem
 function closeProgressOverlay() { document.getElementById('progress-backdrop').classList.add('hidden'); gameState = 'MAIN'; setBlur(false); updateGameSelection(); }
 
 function getMediaForCategory(catName) {
-  const filtered = allGames.filter(g => { const s = g.Store ? String(g.Store).toLowerCase() : ''; if (catName === "ALL GAMES") return true; if (catName === "INSTALLED") { const isManual = s.includes("others") || s.includes("emulation") || s.includes("physical") || s.includes("apps"); return isManual ? !!g.LaunchCommand : g.Installed == 1; } if (catName === "STEAM") return s.includes("steam"); if (catName === "GOG") return s.includes("gog"); if (catName === "EPIC") return s.includes("epic"); if (catName === "FLATPAK") return s.includes("flatpak"); if (catName === "ITCH") return s.includes("itch"); if (catName === "PICO-8") return s.includes("pico"); if (catName === "OTHERS") return s.includes("others"); if (catName === "PHYSICAL") return s.includes("physical"); if (catName === "EMULATION") return s.includes("emulation"); if (catName === "APPS") return s.includes("apps"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; return true; });
+  const filtered = allGames.filter(g => { const s = g.Store ? String(g.Store).toLowerCase() : ''; if (catName === "ALL GAMES") return true; if (catName === "INSTALLED") { const isManual = !g.GrinderGameId && (s.includes("others") || s.includes("emulation") || s.includes("physical") || s.includes("apps")); return isManual ? !!g.LaunchCommand : g.Installed == 1; } if (catName === "STEAM") return s.includes("steam"); if (catName === "GOG") return s.includes("gog"); if (catName === "EPIC") return s.includes("epic"); if (catName === "FLATPAK") return s.includes("flatpak"); if (catName === "ITCH") return s.includes("itch"); if (catName === "PICO-8") return s.includes("pico"); if (catName === "OTHERS") return s.includes("others"); if (catName === "PHYSICAL") return s.includes("physical"); if (catName === "EMULATION") return s.includes("emulation"); if (catName === "APPS") return s.includes("apps"); if (catName === "FAVS") return g.FAV === 'YES'; if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES'; return true; });
   let media = [];
   filtered.forEach(g => { if (g.Screenshot && String(g.Screenshot).trim()) media.push(...String(g.Screenshot).split('|').filter(s => s.trim())); });
   if (media.length < 3) filtered.forEach(g => { if (g.CoverArt && String(g.CoverArt).trim()) media.push(String(g.CoverArt)); });
@@ -2315,7 +2316,7 @@ function matchCatForGallery(g, catName) {
   if (catName === "EMULATION") return store.includes("emulation");
   if (catName === "APPS") return store.includes("apps");
   if (catName === "OTHERS") return store.includes("others");
-  if (catName === "INSTALLED") { const isManual = store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps"); return isManual ? !!g.LaunchCommand : g.Installed == 1; }
+  if (catName === "INSTALLED") { const isManual = !g.GrinderGameId && (store.includes("others") || store.includes("emulation") || store.includes("physical") || store.includes("apps")); return isManual ? !!g.LaunchCommand : g.Installed == 1; }
   if (catName === "FAVS") return g.FAV === 'YES';
   if (catName === "WANT TO PLAY") return g.WANT_TO_PLAY === 'YES';
   return true;
@@ -2828,7 +2829,9 @@ function ggpActivateButton() {
       openOSK('LAUNCH_CMD', t('osk.launch_command'), '');
     } else if (playBtnEl?.dataset?.installMode === '1') {
       const stL = (game.Store || '').toLowerCase();
-      if (stL.includes('gog') || stL.includes('epic')) { showGrinderConfirm(game); }
+      if (game.GrinderGameId && !stL.includes('gog') && !stL.includes('epic')) {
+        window.api.openGrinderGui(game.Game);
+      } else if (stL.includes('gog') || stL.includes('epic')) { showGrinderConfirm(game); }
     } else if (game.LaunchCommand) { enterSleepMode(game); }
   }
 }
