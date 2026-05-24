@@ -229,7 +229,13 @@ ipcMain.on('launch-game', (event, cmd) => {
         }
     }
 
-    // 2. PICO-8 cart launch
+    // 2. itch.io — delegate to itch app via xdg-open (shell.openExternal rejects custom schemes)
+    if (cmd.startsWith('itch://')) {
+        spawn('xdg-open', [cmd], { detached: true, stdio: 'ignore' }).unref();
+        return;
+    }
+
+    // 3. PICO-8 cart launch
     if (cmd.startsWith('pico8-cart:')) {
         const cartPath = cmd.slice('pico8-cart:'.length);
         const bin = _getPico8Bin();
