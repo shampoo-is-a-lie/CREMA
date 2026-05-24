@@ -1781,10 +1781,12 @@ function updateGameSelection() {
       const hltbEl = document.getElementById('stat-hltb'); if (game.HLTB_Main && String(game.HLTB_Main).trim() !== "") { hltbEl.innerText = game.HLTB_Main; hltbEl.style.color = "var(--accent)"; } else { hltbEl.innerText = "--"; hltbEl.style.color = "var(--text_dim)"; }
       const protonEl = document.getElementById('stat-proton'); if (game.ProtonTier && String(game.ProtonTier).trim() !== "") { colorProtonText(protonEl, game.ProtonTier); } else { protonEl.innerText = "--"; protonEl.style.color = "var(--text_dim)"; }
       const achBox = document.getElementById('stat-ach-box'); const achEl = document.getElementById('stat-ach');
-      const _listAchAppId = _cGogAppId(game);
-      if (_listAchAppId) {
+      const _gogKey   = _cGogAppId(game);
+      const _steamKey = game.SteamAppID ? `steam_${String(game.SteamAppID).replace(/\.0+$/, '')}` : null;
+      const _listAchKey = _gogKey || _steamKey;
+      if (_listAchKey) {
         achBox.style.display = ''; achEl.textContent = '...';
-        window.api.getGameAchievements(_listAchAppId).then(r => {
+        window.api.getGameAchievements(_listAchKey).then(r => {
           if (gameState !== 'MAIN' || filteredGames[currentGameIndex]?.id !== game.id) return;
           if (r.ok && r.achievements.length) { const u = r.achievements.filter(a => a.date_unlocked).length; achEl.textContent = `${u} / ${r.achievements.length}`; }
           else { achBox.style.display = 'none'; }
@@ -2473,7 +2475,6 @@ function renderGalleryGrid() {
     cell.className = 'gcell' + (i === galleryIndex ? ' selected' : '');
     cell.id = `gcell-${i}`;
     const imgSrc = game.CoverArt ? convertSafePath(game.CoverArt) : '';
-    const logo = getGalleryStoreLogo(game.Store);
     const isInstalled = game.Installed == null || game.Installed == 1;
     let actionBtn = '';
     if (game.LaunchCommand && String(game.LaunchCommand).trim()) {
@@ -2481,14 +2482,15 @@ function renderGalleryGrid() {
         ? `<button class="gcell-play-btn gcell-installed-btn">▶ ${t('status.installed')}</button>`
         : `<button class="gcell-play-btn gcell-install-btn">⬇ ${t('status.install')}</button>`;
     }
-    const storeBadge = logo ? `<div class="gcell-store-badge" style="-webkit-mask-image:url('${logo}');"></div>` : '';
+    const _gcellBadges = (game.Store ? String(game.Store).split(',') : []).map(s => s.trim()).filter(Boolean).map(s => { const l = getGalleryStoreLogo(s); return l ? `<div class="gcell-store-badge" style="-webkit-mask-image:url('${l}');"></div>` : ''; }).join('');
+    const storeBadgeGroup = _gcellBadges ? `<div style="display:flex;gap:3px;flex-shrink:0;">${_gcellBadges}</div>` : '';
     const coverArea = imgSrc
       ? `<div class="gcell-cover-area"><img src="${imgSrc}" alt=""></div>`
       : `<div class="gcell-cover-area"><div class="gcell-noart">${game.Game}</div></div>`;
     if (!actionBtn && isManualCategory(game)) {
       actionBtn = `<button class="gcell-play-btn gcell-install-btn">⬇ ${t('status.install')}</button>`;
     }
-    const footerRow = (actionBtn || storeBadge) ? `<div class="gcell-footer-row">${actionBtn}${storeBadge}</div>` : '';
+    const footerRow = (actionBtn || storeBadgeGroup) ? `<div class="gcell-footer-row">${actionBtn}${storeBadgeGroup}</div>` : '';
     cell.innerHTML = `${coverArea}<div class="gcell-footer"><div class="gcell-title">${game.Game}</div>${footerRow}</div>`;
     cell.addEventListener('click', () => { galleryIndex = i; playSound(sfxSelect); openGalleryGamepage(galleryGames[i]); });
     grid.appendChild(cell);
@@ -2601,6 +2603,7 @@ function navigateGallery(dir) {
 
 let _cAchAll  = [];
 let _cAchFilter = 'all';
+let _cAchStores = {};  // storeLabel → achievements[]
 
 function _cRelDate(iso) {
   if (!iso) return '';
@@ -2620,30 +2623,60 @@ function _cGogAppId(game) {
 }
 
 async function loadCremaAchievements(game) {
-  const box = document.getElementById('ggp-ach-box');
-  box.style.display = 'none';
+  const container = document.getElementById('ggp-ach-container');
+  container.innerHTML = '';
   _cAchAll = [];
+  _cAchStores = {};
 
-  const isGog = (game.Store || '').toLowerCase().includes('gog');
-  if (!isGog) return;
-  const appId = _cGogAppId(game);
-  if (!appId) return;
+  const gogId    = _cGogAppId(game);
+  const steamRaw = game.SteamAppID ? String(game.SteamAppID).replace(/\.0+$/, '') : null;
 
-  let res = await window.api.getGameAchievements(appId);
-  if (!res.ok || !res.achievements.length) {
-    res = await window.api.fetchAchievementsNow(appId);
+  const tasks = [];
+  if (gogId)    tasks.push({ label: 'GOG',   fetch: async () => { let r = await window.api.getGameAchievements(gogId); if (!r.ok || !r.achievements.length) r = await window.api.fetchAchievementsNow(gogId); return r; } });
+  if (steamRaw) tasks.push({ label: 'STEAM', fetch: async () => { const k = `steam_${steamRaw}`; let r = await window.api.getGameAchievements(k); if (!r.ok || !r.achievements.length) r = await window.api.fetchSteamAchievements(steamRaw); return r; } });
+  if (!tasks.length) return;
+
+  const results = await Promise.all(tasks.map(t => t.fetch()));
+  const multi = results.filter(r => r.ok && r.achievements.length).length > 1;
+
+  for (let i = 0; i < tasks.length; i++) {
+    const res = results[i];
+    if (!res.ok || !res.achievements.length) continue;
+    const label = tasks[i].label;
+    _cAchStores[label] = res.achievements;
+    if (!_cAchAll.length) _cAchAll = res.achievements;
+    _cRenderAchBox(container, label, res.achievements, multi);
   }
-  if (!res.ok || !res.achievements.length) return;
+}
 
-  _cAchAll = res.achievements;
-  const total    = _cAchAll.length;
-  const unlocked = _cAchAll.filter(a => a.date_unlocked).length;
+function _cRenderAchBox(container, label, achievements, showLabel) {
+  const total    = achievements.length;
+  const unlocked = achievements.filter(a => a.date_unlocked).length;
   const pct      = total ? Math.round(unlocked / total * 100) : 0;
 
-  document.getElementById('crema-ach-pct').textContent   = total ? `${pct}%` : '—';
-  document.getElementById('crema-ach-count').textContent = total ? `${unlocked} / ${total}` : 'No data';
-  document.getElementById('crema-ach-ring').setAttribute('stroke-dasharray', `${pct} 100`);
-  box.style.display = 'flex';
+  const box = document.createElement('div');
+  box.className = 'stat-box';
+  box.style.cssText = 'cursor:pointer; flex-direction:column; align-items:center; gap:8px; padding:14px 10px;';
+  box.onclick = () => { _cAchAll = _cAchStores[label]; openCremaAchievementsOverlay(); };
+
+  box.innerHTML = `
+    <div style="position:relative; width:60px; height:60px; flex-shrink:0;">
+      <svg viewBox="0 0 36 36" width="60" height="60" style="transform:rotate(-90deg);">
+        <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+        <circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"
+          stroke-dasharray="${pct} 100" style="transition:stroke-dasharray 0.6s ease;"/>
+      </svg>
+      <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+        <span style="font-size:11px; font-weight:900; color:var(--text_main); line-height:1;">${pct}%</span>
+      </div>
+    </div>
+    <div style="font-size:10px; font-weight:900; letter-spacing:2px; color:var(--text_dim); text-transform:uppercase; text-align:center;">
+      Achievements${showLabel ? `<br><span style="font-size:9px; letter-spacing:1px; opacity:0.7;">${label}</span>` : ''}
+    </div>
+    <div style="font-size:13px; font-weight:900; color:var(--accent);">${unlocked} / ${total}</div>
+    <div style="font-size:10px; color:var(--text_dim);">Press to view all</div>`;
+
+  container.appendChild(box);
 }
 
 function openCremaAchievementsOverlay() {
@@ -2821,13 +2854,23 @@ function updateGalleryGamepageContent(game) {
   const logoSrc = game.Logo ? convertSafePath(game.Logo) : '';
   if (logoEl) { logoEl.src = logoSrc; logoEl.style.display = logoSrc ? 'block' : 'none'; }
 
-  // Store badge
-  const storeBadgeEl = document.getElementById('ggp-store-badge');
-  if (storeBadgeEl) {
-    const storeLogo = getGalleryStoreLogo(game.Store);
-    if (storeLogo) { storeBadgeEl.style.webkitMaskImage = `url('${convertSafePath(storeLogo)}')`; storeBadgeEl.style.display = 'block'; }
-    else storeBadgeEl.style.display = 'none';
+  // Store badges (one per store, overlaid on bottom-right of cover art)
+  const storeBadgesEl = document.getElementById('ggp-store-badges');
+  if (storeBadgesEl) {
+    storeBadgesEl.innerHTML = '';
+    if (game.Store) {
+      String(game.Store).split(',').map(s => s.trim()).filter(Boolean).forEach(s => {
+        const logo = getGalleryStoreLogo(s);
+        if (!logo) return;
+        const badge = document.createElement('div');
+        badge.className = 'ggp-store-badge-icon';
+        badge.style.webkitMaskImage = `url('${convertSafePath(logo)}')`;
+        storeBadgesEl.appendChild(badge);
+      });
+    }
   }
+  const oldBadge = document.getElementById('ggp-store-badge');
+  if (oldBadge) oldBadge.style.display = 'none';
 
   // Cover art
   const coverEl = document.getElementById('ggp-media-img');

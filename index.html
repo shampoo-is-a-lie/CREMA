@@ -235,7 +235,9 @@
     #ggp-full-desc img { max-width: 100%; height: auto; border-radius: 6px; margin: 12px 0; display: block; }
     #ggp-fallback-desc { font-size: 15px; line-height: 1.8; color: var(--text_sec); display: none; }
     /* Right column: cover + stats */
-    #ggp-cover { width: 220px; flex-shrink: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border_solid); background: var(--bg_panel); align-self: flex-start; }
+    #ggp-cover { width: 220px; flex-shrink: 0; border-radius: 10px; overflow: hidden; border: 1px solid var(--border_solid); background: var(--bg_panel); align-self: flex-start; position: relative; }
+    #ggp-store-badges { position: absolute; bottom: 8px; right: 8px; display: flex; flex-direction: row; gap: 6px; }
+    .ggp-store-badge-icon { width: 24px; height: 24px; background-color: rgba(255,255,255,0.88); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; filter: drop-shadow(0 1px 5px rgba(0,0,0,0.95)); flex-shrink: 0; }
     #ggp-media-img { width: 100%; display: block; aspect-ratio: 2/3; object-fit: cover; }
     /* No-cover placeholder */
     #ggp-cover-placeholder { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; width: 100%; aspect-ratio: 2/3; color: var(--text_dim); }
@@ -528,6 +530,7 @@
         <div id="ggp-content">
           <div id="ggp-cover">
             <img id="ggp-media-img" src="" alt="">
+            <div id="ggp-store-badges"></div>
             <div id="ggp-cover-placeholder">
               <span class="ph-icon">◈</span>
               <span class="ph-label">NO COVER ART</span>
@@ -546,21 +549,8 @@
             <div id="ggp-stats-panel">
               <div id="ggp-stats-row"></div>
               <div id="ggp-extra"></div>
-              <!-- Achievements stat-box (GOG only) -->
-              <div id="ggp-ach-box" class="stat-box" style="display:none; cursor:pointer; flex-direction:column; align-items:center; gap:8px; padding:14px 10px;" onclick="window.openCremaAchievementsOverlay && window.openCremaAchievementsOverlay()">
-                <div style="position:relative; width:60px; height:60px; flex-shrink:0;">
-                  <svg viewBox="0 0 36 36" width="60" height="60" style="transform:rotate(-90deg);">
-                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
-                    <circle id="crema-ach-ring" cx="18" cy="18" r="15.9" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 100" style="transition:stroke-dasharray 0.6s ease;"/>
-                  </svg>
-                  <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                    <span id="crema-ach-pct" style="font-size:11px; font-weight:900; color:var(--text_main); line-height:1;">—</span>
-                  </div>
-                </div>
-                <div style="font-size:10px; font-weight:900; letter-spacing:2px; color:var(--text_dim); text-transform:uppercase;">Achievements</div>
-                <div id="crema-ach-count" style="font-size:13px; font-weight:900; color:var(--accent);">—</div>
-                <div style="font-size:10px; color:var(--text_dim);">Press to view all</div>
-              </div>
+              <!-- Achievements boxes (one per store, built dynamically) -->
+              <div id="ggp-ach-container" style="display:contents;"></div>
             </div>
           </div>
         </div>
