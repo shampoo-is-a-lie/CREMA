@@ -1090,9 +1090,12 @@ async function openOverlay(type) {
     const storeL = (game.Store || '').toLowerCase();
     const isGrinderStore = ((storeL.includes('gog') || storeL.includes('epic')) && game.app_id) || !!game.GrinderGameId;
     const isInstalled = game.Installed == null || game.Installed == 1;
-    const grinderItems = isGrinderStore ? (isInstalled ? ['§GRINDER', 'Uninstall via GRINDER'] : ['§GRINDER', 'Install via GRINDER']) : [];
-    const hasStoreId = !!(_cGogAppId(game) || (game.SteamAppID ? String(game.SteamAppID).replace(/\.0+$/, '') : null));
-    const achItems = hasStoreId ? ['§ACHIEVEMENTS', 'View Achievements'] : [];
+    const grinderItems = isGrinderStore ? (isInstalled ? ['§GRINDER', 'UNINSTALL VIA GRINDER'] : ['§GRINDER', 'INSTALL VIA GRINDER']) : [];
+    const gogId = _cGogAppId(game); const steamRaw = game.SteamAppID ? String(game.SteamAppID).replace(/\.0+$/, '') : null;
+    let hasAchievements = false;
+    if (gogId) { const r = await window.api.getGameAchievements(gogId); if (r.ok && r.achievements.length) hasAchievements = true; }
+    if (!hasAchievements && steamRaw) { const r = await window.api.getGameAchievements(`steam_${steamRaw}`); if (r.ok && r.achievements.length) hasAchievements = true; }
+    const achItems = hasAchievements ? ['§ACHIEVEMENTS', 'VIEW ACHIEVEMENTS'] : [];
     renderGenericOverlay(t('menu.game_options'), [trStr, favStr, wantStr, cmdStr, t('game_menu.rename'), t('game_menu.scraping'), ...achItems, ...grinderItems, t('common.close_menu')]);
   }
 }
@@ -1204,9 +1207,9 @@ function executeOverlayAction() {
     else if (action === t('game_menu.scraping')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openGameScrapeMenu(); }
     else if (action === t('game_menu.download_trailer')) openSearchOverlay();
     else if (action === t('game_menu.delete_trailer')) { clearMediaLoaders(); window.api.deleteTrailer(filteredGames[currentGameIndex].Game).then(() => { setDebug("🗑️ Trailer Deleted", true); refreshDatabase(); closeOverlay(); }); }
-    else if (action === 'Install via GRINDER') { closeOverlay(); const _ig = filteredGames[currentGameIndex]; const _stL = (_ig.Store || '').toLowerCase(); if (_ig.GrinderGameId && !_stL.includes('gog') && !_stL.includes('epic')) { window.api.openGrinderGui(_ig.Game); } else { showGrinderConfirm(_ig); } }
-    else if (action === 'Uninstall via GRINDER') { closeOverlay(); triggerGrinderUninstall(filteredGames[currentGameIndex]); }
-    else if (action === 'View Achievements') {
+    else if (action === 'INSTALL VIA GRINDER') { closeOverlay(); const _ig = filteredGames[currentGameIndex]; const _stL = (_ig.Store || '').toLowerCase(); if (_ig.GrinderGameId && !_stL.includes('gog') && !_stL.includes('epic')) { window.api.openGrinderGui(_ig.Game); } else { showGrinderConfirm(_ig); } }
+    else if (action === 'UNINSTALL VIA GRINDER') { closeOverlay(); triggerGrinderUninstall(filteredGames[currentGameIndex]); }
+    else if (action === 'VIEW ACHIEVEMENTS') {
       const game = filteredGames[currentGameIndex];
       document.getElementById('overlay-backdrop').classList.add('hidden');
       gameState = previousGameState;
