@@ -832,6 +832,8 @@ function handleInput(action) {
     else if (action === 'R1' || action === 'RIGHT') { playSound(sfxNav); cAchCycleFilter(1); }
     else if (action === 'UP')   { const g = document.getElementById('crema-ach-grid'); if (g) g.scrollBy({ top: -150, behavior: 'smooth' }); }
     else if (action === 'DOWN') { const g = document.getElementById('crema-ach-grid'); if (g) g.scrollBy({ top:  150, behavior: 'smooth' }); }
+    else if ((action === 'L2' || action === 'L3') && Object.keys(_cAchStores).length > 1) { playSound(sfxNav); cAchSwitchStore(-1); }
+    else if ((action === 'R2' || action === 'R3') && Object.keys(_cAchStores).length > 1) { playSound(sfxNav); cAchSwitchStore(1); }
   }
   else if (gameState === 'JUKEBOX' || gameState === 'JUKEBOX_OVERLAY') { handleJukeboxInput(action); }
   else if (['OVERLAY', 'THEME_CATS', 'THEMES', 'MUSIC_STYLE', 'GAME_SCRAPE_MENU', 'CONFIRM_SCRAPE', 'SCRAPE_RESULT', 'GAMEPAD_MENU', 'WAKE_METHOD_MENU', 'START_SCREEN_MENU', 'LANGUAGE_MENU', 'BROWSE_MODE_MENU'].includes(gameState)) {
@@ -2603,7 +2605,8 @@ function navigateGallery(dir) {
 
 let _cAchAll  = [];
 let _cAchFilter = 'all';
-let _cAchStores = {};  // storeLabel → achievements[]
+let _cAchStores = {};        // storeLabel → achievements[]
+let _cAchCurrentLabel = null; // which store is open in the overlay
 
 function _cRelDate(iso) {
   if (!iso) return '';
@@ -2627,6 +2630,7 @@ async function loadCremaAchievements(game) {
   container.innerHTML = '';
   _cAchAll = [];
   _cAchStores = {};
+  _cAchCurrentLabel = null;
 
   const gogId    = _cGogAppId(game);
   const steamRaw = game.SteamAppID ? String(game.SteamAppID).replace(/\.0+$/, '') : null;
@@ -2644,7 +2648,7 @@ async function loadCremaAchievements(game) {
     if (!res.ok || !res.achievements.length) continue;
     const label = tasks[i].label;
     _cAchStores[label] = res.achievements;
-    if (!_cAchAll.length) _cAchAll = res.achievements;
+    if (!_cAchAll.length) { _cAchAll = res.achievements; _cAchCurrentLabel = label; }
     _cRenderAchBox(container, label, res.achievements, multi);
   }
 }
@@ -2657,7 +2661,7 @@ function _cRenderAchBox(container, label, achievements, showLabel) {
   const box = document.createElement('div');
   box.className = 'stat-box';
   box.style.cssText = 'cursor:pointer; flex-direction:column; align-items:center; gap:8px; padding:14px 10px;';
-  box.onclick = () => { _cAchAll = _cAchStores[label]; openCremaAchievementsOverlay(); };
+  box.onclick = () => { _cAchCurrentLabel = label; _cAchAll = _cAchStores[label]; openCremaAchievementsOverlay(); };
 
   box.innerHTML = `
     <div style="position:relative; width:60px; height:60px; flex-shrink:0;">
@@ -2687,7 +2691,10 @@ function openCremaAchievementsOverlay() {
 
   const overlay = document.getElementById('ach-overlay');
   const game    = galleryCurrentGame;
-  document.getElementById('crema-ach-game-title').textContent = game?.Game || '';
+  const isMulti = Object.keys(_cAchStores).length > 1;
+  document.getElementById('crema-ach-game-title').textContent =
+    isMulti ? `${game?.Game || ''} — ${_cAchCurrentLabel}` : (game?.Game || '');
+  _cAchUpdateHint();
 
   const total    = _cAchAll.length;
   const unlocked = _cAchAll.filter(a => a.date_unlocked).length;
@@ -2716,6 +2723,39 @@ function closeCremaAchievementsOverlay() {
   setBlur(false);
 }
 window.closeCremaAchievementsOverlay = closeCremaAchievementsOverlay;
+
+function _cAchUpdateHint() {
+  const hintEl = document.getElementById('ach-nav-hint');
+  if (!hintEl) return;
+  const isMulti = Object.keys(_cAchStores).length > 1;
+  if (usingKeyboard) {
+    const k = getKey;
+    const storeHint = isMulti ? ` &nbsp;&nbsp; ${k(',')}${k('.')} Store` : '';
+    hintEl.innerHTML = `&#x25B2;&#x25BC; Scroll &nbsp;&nbsp; ${k('PgUp')}${k('PgDn')} Filter${storeHint}`;
+  } else {
+    const storeHint = isMulti ? ` &nbsp;&nbsp; ${getBtn('L2')}${getBtn('R2')} Store` : '';
+    hintEl.innerHTML = `&#x25B2;&#x25BC; Scroll &nbsp;&nbsp; ${getBtn('L1')}${getBtn('R1')} Filter${storeHint}`;
+  }
+}
+
+function cAchSwitchStore(dir) {
+  const storeLabels = Object.keys(_cAchStores);
+  if (storeLabels.length < 2) return;
+  const idx = storeLabels.indexOf(_cAchCurrentLabel);
+  _cAchCurrentLabel = storeLabels[(idx + dir + storeLabels.length) % storeLabels.length];
+  _cAchAll = _cAchStores[_cAchCurrentLabel];
+  const game = galleryCurrentGame;
+  document.getElementById('crema-ach-game-title').textContent = `${game?.Game || ''} — ${_cAchCurrentLabel}`;
+  const total    = _cAchAll.length;
+  const unlocked = _cAchAll.filter(a => a.date_unlocked).length;
+  const pct      = total ? Math.round(unlocked / total * 100) : 0;
+  document.getElementById('crema-ach-ring-big').setAttribute('stroke-dasharray', `${pct} 100`);
+  document.getElementById('crema-ach-ring-pct').textContent   = `${pct}%`;
+  document.getElementById('crema-ach-ring-count').textContent = `${unlocked}/${total}`;
+  _cAchFilter = 'all';
+  document.querySelectorAll('.crema-ach-tab').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  _cRenderGrid();
+}
 
 function _cRenderGrid() {
   const grid  = document.getElementById('crema-ach-grid');
