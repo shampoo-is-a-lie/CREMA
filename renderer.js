@@ -1091,7 +1091,9 @@ async function openOverlay(type) {
     const isGrinderStore = ((storeL.includes('gog') || storeL.includes('epic')) && game.app_id) || !!game.GrinderGameId;
     const isInstalled = game.Installed == null || game.Installed == 1;
     const grinderItems = isGrinderStore ? (isInstalled ? ['§GRINDER', 'Uninstall via GRINDER'] : ['§GRINDER', 'Install via GRINDER']) : [];
-    renderGenericOverlay(t('menu.game_options'), [trStr, favStr, wantStr, cmdStr, t('game_menu.rename'), t('game_menu.scraping'), ...grinderItems, t('common.close_menu')]);
+    const hasStoreId = !!(_cGogAppId(game) || (game.SteamAppID ? String(game.SteamAppID).replace(/\.0+$/, '') : null));
+    const achItems = hasStoreId ? ['§ACHIEVEMENTS', 'View Achievements'] : [];
+    renderGenericOverlay(t('menu.game_options'), [trStr, favStr, wantStr, cmdStr, t('game_menu.rename'), t('game_menu.scraping'), ...achItems, ...grinderItems, t('common.close_menu')]);
   }
 }
 
@@ -1204,6 +1206,16 @@ function executeOverlayAction() {
     else if (action === t('game_menu.delete_trailer')) { clearMediaLoaders(); window.api.deleteTrailer(filteredGames[currentGameIndex].Game).then(() => { setDebug("🗑️ Trailer Deleted", true); refreshDatabase(); closeOverlay(); }); }
     else if (action === 'Install via GRINDER') { closeOverlay(); const _ig = filteredGames[currentGameIndex]; const _stL = (_ig.Store || '').toLowerCase(); if (_ig.GrinderGameId && !_stL.includes('gog') && !_stL.includes('epic')) { window.api.openGrinderGui(_ig.Game); } else { showGrinderConfirm(_ig); } }
     else if (action === 'Uninstall via GRINDER') { closeOverlay(); triggerGrinderUninstall(filteredGames[currentGameIndex]); }
+    else if (action === 'View Achievements') {
+      const game = filteredGames[currentGameIndex];
+      document.getElementById('overlay-backdrop').classList.add('hidden');
+      gameState = previousGameState;
+      setBlur(false);
+      galleryCurrentGame = game;
+      loadCremaAchievements(game).then(() => {
+        if (_cAchAll.length) openCremaAchievementsOverlay();
+      });
+    }
     else if (action === t('menu.sound_settings')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openSoundOverlay(); }
     else if (action === t('menu.keybindings')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openKeybindingsOverlay(); }
     else if (action === t('menu.gamepad_icons')) { document.getElementById('overlay-backdrop').classList.add('hidden'); openGamepadMenu(); }
