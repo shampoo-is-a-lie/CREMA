@@ -2458,7 +2458,7 @@ function renderGalleryGrid() {
   const catName = categories[galleryCatIndex];
   const safe = catName.toLowerCase().replace(/ /g, '_');
   const catIcon = document.getElementById('gallery-cat-icon');
-  if (catIcon) { catIcon.style.webkitMaskImage = `url('${convertSafePath('assets/logos/' + safe + '.png')}')`; }
+  if (catIcon) { catIcon.style.webkitMaskImage = `url('${logoPath(catName)}')`; }
   document.getElementById('gallery-cat-name').innerText = tCat(catName);
   const searchTag = document.getElementById('gallery-search-tag');
   if (galleryQuery) { searchTag.style.display = 'block'; searchTag.innerText = `"${galleryQuery}"`; }
