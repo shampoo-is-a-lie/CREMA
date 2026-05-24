@@ -96,6 +96,7 @@ let availableWallpapers = [];
 const delayOptions = [1, 2, 3, 4, 5, 10, 15, 30];
 
 let _grinderConfirmGame = null; let _grinderInstallDir = ''; let _grinderProgressInterval = null; let _grinderProgressActive = false; let _grinderConfirmActive = false;
+let _lpGame = null; let _lpList = []; let _lpIndex = 0;
 
 let oskMode = 'SEARCH'; let tempOskString = '';
 const OSK_COLS = 7; const OSK_ROWS = 6;
@@ -300,7 +301,7 @@ function renderHardwareIcons() {
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = getMappedBtn('SOUTH'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = getMappedBtn('NORTH'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = getMappedBtn('WEST');
   const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('L1')}${getBtn('R1')} ${t('footer.navigate')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.play')} &nbsp;&nbsp; ${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('WEST')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
   const galF = document.getElementById('gallery-footer'); if (galF) galF.innerHTML = `${getBtn('dpad_up')}${getBtn('dpad_down')}${getBtn('dpad_left')}${getBtn('dpad_right')} ${t('footer.navigate')} &nbsp;&nbsp; ${getBtn('L1')}${getBtn('R1')} ${t('footer.category')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.select')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} ${t('footer.search')} &nbsp;&nbsp; ${getMappedBtn('START')} ${t('footer.menu')}`;
-  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.select')} &nbsp;&nbsp; ${getBtn('dpad_up')}${getBtn('dpad_down')} ${t('footer.navigate')} &nbsp;&nbsp; ${getBtn('L1')}${getBtn('R1')} ${t('footer.page')} &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
+  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${getMappedBtn('EAST')} ${t('footer.back')} &nbsp;&nbsp; ${getMappedBtn('SOUTH')} ${t('footer.select')} &nbsp;&nbsp; ${getBtn('dpad_up')}${getBtn('dpad_down')} ${t('footer.navigate')} &nbsp;&nbsp; ${getBtn('L1')}${getBtn('R1')} ${t('footer.page')} &nbsp;&nbsp; ${getMappedBtn('NORTH')} Achievements &nbsp;&nbsp; ${getMappedBtn('SELECT')} ${t('footer.options')}`;
 }
 function renderFootersForKeyboard() {
   const k = getKey;
@@ -310,7 +311,7 @@ function renderFootersForKeyboard() {
   const ssA = document.getElementById('ss-btn-a'); if (ssA) ssA.innerHTML = k('Enter'); const ssY = document.getElementById('ss-btn-y'); if (ssY) ssY.innerHTML = k('Y'); const ssX = document.getElementById('ss-btn-x'); if (ssX) ssX.innerHTML = k('X');
   const jbF = document.getElementById('jb-footer'); if (jbF) jbF.innerHTML = `${k('↑')}${k('↓')}${k('PgUp')}${k('PgDn')} ${t('footer.navigate')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.play')} &nbsp;&nbsp; ${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('X')} ${t('footer.fullscreen')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
   const galF = document.getElementById('gallery-footer'); if (galF) galF.innerHTML = `${k('↑')}${k('↓')}${k('←')}${k('→')} ${t('footer.navigate')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.category')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp; ${k('Y')} ${t('footer.search')} &nbsp;&nbsp; ${k('M')} ${t('footer.menu')}`;
-  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp; ${k('↑')}${k('↓')} ${t('footer.navigate')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.page')} &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
+  const ggpF = document.getElementById('ggp-footer'); if (ggpF) ggpF.innerHTML = `${k('Esc')} ${t('footer.back')} &nbsp;&nbsp; ${k('Enter')} ${t('footer.select')} &nbsp;&nbsp; ${k('↑')}${k('↓')} ${t('footer.navigate')} &nbsp;&nbsp; ${k(',')}${k('.')} ${t('footer.page')} &nbsp;&nbsp; ${k('Y')} Achievements &nbsp;&nbsp; ${k('O')} ${t('footer.options')}`;
 }
 function updateJbFsHints() {
   const hint = document.getElementById('jb-fs-controls-hint'); if (!hint) return;
@@ -416,7 +417,7 @@ function stopScreensaver() { gameState = previousGameState; document.getElementB
 
 function handleSSAction(action) {
   if (audioCfg.screensaver === 'CN WALLPAPERS' || !currentSSGame) return stopScreensaver();
-  if (action === 'LAUNCH') { const cmd = currentSSGame.LaunchCommand; if (cmd) { stopScreensaver(); enterSleepMode(currentSSGame); } else { stopScreensaver(); } }
+  if (action === 'LAUNCH') { const cmd = currentSSGame.LaunchCommand; if (cmd) { stopScreensaver(); tryLaunch(currentSSGame); } else { stopScreensaver(); } }
   else if (action === 'FAV') { playSound(sfxSelect); currentSSGame.FAV = currentSSGame.FAV === "YES" ? "NO" : "YES"; window.api.saveDbField({game: currentSSGame.Game, field: 'FAV', value: currentSSGame.FAV}); updateSSUI(currentSSGame); if (gameState === 'MAIN') updateGameSelection(); }
   else if (action === 'WANT') { playSound(sfxSelect); currentSSGame.WANT_TO_PLAY = currentSSGame.WANT_TO_PLAY === "YES" ? "NO" : "YES"; window.api.saveDbField({game: currentSSGame.Game, field: 'WANT_TO_PLAY', value: currentSSGame.WANT_TO_PLAY}); updateSSUI(currentSSGame); if (gameState === 'MAIN') updateGameSelection(); }
 }
@@ -546,6 +547,43 @@ async function boot() {
 }
 
 let inputDebounce = false; let navRepeatDelay = 180; let lastSelectionTime = 0; let wakeHoldFrames = 0;
+
+function tryLaunch(game) {
+  let launchers = [];
+  try { launchers = JSON.parse(game.LaunchCommands || '[]'); } catch(e) {}
+  if (launchers.length >= 2) {
+    showLauncherPicker(game, launchers);
+  } else {
+    const cmd = launchers.length === 1 ? launchers[0].cmd : game.LaunchCommand;
+    enterSleepMode(cmd ? { ...game, LaunchCommand: cmd } : game);
+  }
+}
+
+function showLauncherPicker(game, launchers) {
+  _lpGame = game; _lpList = launchers; _lpIndex = 0;
+  document.getElementById('lp-game-title').textContent = game.Game;
+  renderLpList();
+  document.getElementById('launcher-pick-backdrop').classList.remove('hidden');
+  previousGameState = gameState;
+  gameState = 'LAUNCHER_PICK';
+}
+
+function hideLauncherPicker() {
+  document.getElementById('launcher-pick-backdrop').classList.add('hidden');
+  _lpGame = null;
+  gameState = previousGameState;
+}
+
+function renderLpList() {
+  const el = document.getElementById('lp-list');
+  el.innerHTML = '';
+  _lpList.forEach((l, i) => {
+    const div = document.createElement('div');
+    div.className = 'overlay-item' + (i === _lpIndex ? ' selected' : '');
+    div.textContent = l.label || l.cmd;
+    el.appendChild(div);
+  });
+}
 
 function enterSleepMode(game) {
   document.body.style.backgroundColor = 'var(--text_sec)';
@@ -722,7 +760,7 @@ function handleInput(action) {
         const isInstalled = g.Installed == null || g.Installed == 1;
         const stL = (g.Store || '').toLowerCase();
         if (!isInstalled && (stL.includes('gog') || stL.includes('epic'))) { showGrinderConfirm(g); }
-        else { enterSleepMode(g); }
+        else { tryLaunch(g); }
       }
       else if (isManualCategory(g)) { openOverlay("GAME_MENU"); }
     }
@@ -748,6 +786,7 @@ function handleInput(action) {
       return;
     }
     if (action === 'BACK') { playSound(sfxBack); closeGalleryGamepage(); }
+    else if (action === 'Y_BUTTON') { if (_cAchAll.length) { playSound(sfxSelect); openCremaAchievementsOverlay(); } }
     else if (action === 'START') { openOverlay("MAIN_MENU"); }
     else if (action === 'SELECT_BTN') { if (galleryCurrentGame) { filteredGames = galleryGames; currentGameIndex = galleryIndex; openOverlay("GAME_MENU"); } }
     else if (action === 'L1') { galleryGamepageNavigate(-1); }
@@ -778,8 +817,21 @@ function handleInput(action) {
     else if (action === 'BACK') { playSound(sfxBack); hideGrinderConfirm(); }
     else if (action === 'Y_BUTTON') { hideGrinderConfirm(); openOSK('INSTALL_DIR', 'Install Directory', _grinderInstallDir); }
   }
+  else if (gameState === 'LAUNCHER_PICK') {
+    if (action === 'DOWN') { _lpIndex = (_lpIndex + 1) % _lpList.length; playSound(sfxNav); renderLpList(); }
+    else if (action === 'UP') { _lpIndex = (_lpIndex - 1 + _lpList.length) % _lpList.length; playSound(sfxNav); renderLpList(); }
+    else if (action === 'ACCEPT') { playSound(sfxSelect); const chosen = _lpList[_lpIndex]; hideLauncherPicker(); enterSleepMode({ ..._lpGame, LaunchCommand: chosen.cmd }); }
+    else if (action === 'BACK') { playSound(sfxBack); hideLauncherPicker(); }
+  }
   else if (gameState === 'GRINDER_PROGRESS') {
     if (action === 'BACK') { window.api.grinderCancelHeadless(); hideGrinderProgress(); }
+  }
+  else if (gameState === 'ACH_OVERLAY') {
+    if (action === 'BACK') { playSound(sfxBack); closeCremaAchievementsOverlay(); }
+    else if (action === 'L1' || action === 'LEFT')  { playSound(sfxNav); cAchCycleFilter(-1); }
+    else if (action === 'R1' || action === 'RIGHT') { playSound(sfxNav); cAchCycleFilter(1); }
+    else if (action === 'UP')   { const g = document.getElementById('crema-ach-grid'); if (g) g.scrollBy({ top: -150, behavior: 'smooth' }); }
+    else if (action === 'DOWN') { const g = document.getElementById('crema-ach-grid'); if (g) g.scrollBy({ top:  150, behavior: 'smooth' }); }
   }
   else if (gameState === 'JUKEBOX' || gameState === 'JUKEBOX_OVERLAY') { handleJukeboxInput(action); }
   else if (['OVERLAY', 'THEME_CATS', 'THEMES', 'MUSIC_STYLE', 'GAME_SCRAPE_MENU', 'CONFIRM_SCRAPE', 'SCRAPE_RESULT', 'GAMEPAD_MENU', 'WAKE_METHOD_MENU', 'START_SCREEN_MENU', 'LANGUAGE_MENU', 'BROWSE_MODE_MENU'].includes(gameState)) {
@@ -1728,6 +1780,16 @@ function updateGameSelection() {
       let genre = game.GENRE ? String(game.GENRE) : "--"; if (genre.includes(",")) genre = genre.split(",")[0]; document.getElementById('stat-genre').innerText = genre;
       const hltbEl = document.getElementById('stat-hltb'); if (game.HLTB_Main && String(game.HLTB_Main).trim() !== "") { hltbEl.innerText = game.HLTB_Main; hltbEl.style.color = "var(--accent)"; } else { hltbEl.innerText = "--"; hltbEl.style.color = "var(--text_dim)"; }
       const protonEl = document.getElementById('stat-proton'); if (game.ProtonTier && String(game.ProtonTier).trim() !== "") { colorProtonText(protonEl, game.ProtonTier); } else { protonEl.innerText = "--"; protonEl.style.color = "var(--text_dim)"; }
+      const achBox = document.getElementById('stat-ach-box'); const achEl = document.getElementById('stat-ach');
+      const _listAchAppId = _cGogAppId(game);
+      if (_listAchAppId) {
+        achBox.style.display = ''; achEl.textContent = '...';
+        window.api.getGameAchievements(_listAchAppId).then(r => {
+          if (gameState !== 'MAIN' || filteredGames[currentGameIndex]?.id !== game.id) return;
+          if (r.ok && r.achievements.length) { const u = r.achievements.filter(a => a.date_unlocked).length; achEl.textContent = `${u} / ${r.achievements.length}`; }
+          else { achBox.style.display = 'none'; }
+        });
+      } else { achBox.style.display = 'none'; }
       let hasCover = game.CoverArt && String(game.CoverArt).trim() !== "";
       let hasScreenshotsTemp = game.Screenshot && String(game.Screenshot).trim() !== "";
 
@@ -2534,6 +2596,168 @@ function navigateGallery(dir) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+// GOG ACHIEVEMENTS (CREMA)
+// ══════════════════════════════════════════════════════════════════════════
+
+let _cAchAll  = [];
+let _cAchFilter = 'all';
+
+function _cRelDate(iso) {
+  if (!iso) return '';
+  try {
+    const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+    if (days === 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7)  return `${days}d ago`;
+    if (days < 30) return `${Math.floor(days / 7)}w ago`;
+    return new Date(iso).toLocaleDateString();
+  } catch { return iso; }
+}
+
+function _cGogAppId(game) {
+  const m = (game.LaunchCommand || '').match(/heroic:\/\/launch\/gog\/(\d+)/i);
+  return m ? m[1] : null;
+}
+
+async function loadCremaAchievements(game) {
+  const box = document.getElementById('ggp-ach-box');
+  box.style.display = 'none';
+  _cAchAll = [];
+
+  const isGog = (game.Store || '').toLowerCase().includes('gog');
+  if (!isGog) return;
+  const appId = _cGogAppId(game);
+  if (!appId) return;
+
+  let res = await window.api.getGameAchievements(appId);
+  if (!res.ok || !res.achievements.length) {
+    res = await window.api.fetchAchievementsNow(appId);
+  }
+  if (!res.ok || !res.achievements.length) return;
+
+  _cAchAll = res.achievements;
+  const total    = _cAchAll.length;
+  const unlocked = _cAchAll.filter(a => a.date_unlocked).length;
+  const pct      = total ? Math.round(unlocked / total * 100) : 0;
+
+  document.getElementById('crema-ach-pct').textContent   = total ? `${pct}%` : '—';
+  document.getElementById('crema-ach-count').textContent = total ? `${unlocked} / ${total}` : 'No data';
+  document.getElementById('crema-ach-ring').setAttribute('stroke-dasharray', `${pct} 100`);
+  box.style.display = 'flex';
+}
+
+function openCremaAchievementsOverlay() {
+  if (!_cAchAll.length) return;
+  previousGameState = gameState;
+  gameState = 'ACH_OVERLAY';
+  setBlur(true);
+
+  const overlay = document.getElementById('ach-overlay');
+  const game    = galleryCurrentGame;
+  document.getElementById('crema-ach-game-title').textContent = game?.Game || '';
+
+  const total    = _cAchAll.length;
+  const unlocked = _cAchAll.filter(a => a.date_unlocked).length;
+  const pct      = total ? Math.round(unlocked / total * 100) : 0;
+  document.getElementById('crema-ach-ring-big').setAttribute('stroke-dasharray', `${pct} 100`);
+  document.getElementById('crema-ach-ring-pct').textContent   = `${pct}%`;
+  document.getElementById('crema-ach-ring-count').textContent = `${unlocked}/${total}`;
+
+  _cAchFilter = 'all';
+  document.querySelectorAll('.crema-ach-tab').forEach(b => b.classList.toggle('active', b.dataset.f === 'all'));
+  _cRenderGrid();
+  overlay.classList.remove('hidden');
+}
+window.openCremaAchievementsOverlay = openCremaAchievementsOverlay;
+
+function cAchSetFilter(f, btn) {
+  _cAchFilter = f;
+  document.querySelectorAll('.crema-ach-tab').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  _cRenderGrid();
+}
+window.cAchSetFilter = cAchSetFilter;
+
+function closeCremaAchievementsOverlay() {
+  document.getElementById('ach-overlay').classList.add('hidden');
+  gameState = previousGameState;
+  setBlur(false);
+}
+window.closeCremaAchievementsOverlay = closeCremaAchievementsOverlay;
+
+function _cRenderGrid() {
+  const grid  = document.getElementById('crema-ach-grid');
+  const empty = document.getElementById('crema-ach-empty');
+  grid.innerHTML = '';
+
+  const list = _cAchAll.filter(a =>
+      _cAchFilter === 'all'      ? true
+    : _cAchFilter === 'unlocked' ? !!a.date_unlocked
+    :                              !a.date_unlocked
+  );
+
+  if (!list.length) { grid.style.display = 'none'; empty.style.display = 'flex'; return; }
+  grid.style.display = 'grid'; empty.style.display = 'none';
+
+  for (const a of list) {
+    const unlocked = !!a.date_unlocked;
+    const card = document.createElement('div');
+    card.className = 'crema-ach-card' + (unlocked ? ' unlocked' : '');
+
+    const iconUrl = unlocked ? a.image_unlocked : a.image_locked;
+    if (iconUrl) {
+      const img = document.createElement('img');
+      img.src = iconUrl;
+      if (!unlocked) img.style.cssText = 'filter:grayscale(1) opacity(0.35);';
+      img.onerror = () => img.replaceWith(Object.assign(document.createElement('div'), { style: 'width:64px;height:64px;border-radius:8px;background:rgba(255,255,255,0.05);flex-shrink:0;' }));
+      card.appendChild(img);
+    } else {
+      const ph = document.createElement('div');
+      ph.style.cssText = `width:64px; height:64px; border-radius:8px; background:rgba(255,255,255,0.05); flex-shrink:0; ${unlocked ? '' : 'opacity:0.35;'}`;
+      card.appendChild(ph);
+    }
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1; min-width:0;';
+
+    const name = document.createElement('div');
+    name.className = 'c-name';
+    name.textContent = a.name || a.key;
+    info.appendChild(name);
+
+    if (a.description) {
+      const desc = document.createElement('div');
+      desc.className = 'c-desc';
+      desc.textContent = a.description;
+      info.appendChild(desc);
+    }
+
+    if (unlocked) {
+      const date = document.createElement('div');
+      date.className = 'c-date';
+      date.textContent = `✓ ${_cRelDate(a.date_unlocked)}`;
+      info.appendChild(date);
+    } else {
+      const lock = document.createElement('div');
+      lock.className = 'c-lock';
+      lock.textContent = '🔒';
+      info.appendChild(lock);
+    }
+    card.appendChild(info);
+    grid.appendChild(card);
+  }
+}
+
+document.getElementById('ach-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('ach-overlay')) closeCremaAchievementsOverlay();
+});
+
+function cAchCycleFilter(dir) {
+  const tabs = ['all', 'unlocked', 'locked'];
+  const next = tabs[(tabs.indexOf(_cAchFilter) + dir + tabs.length) % tabs.length];
+  cAchSetFilter(next, null);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 // GALLERY GAMEPAGE
 // ══════════════════════════════════════════════════════════════════════════
 
@@ -2720,6 +2944,8 @@ function updateGalleryGamepageContent(game) {
     });
   }
 
+  loadCremaAchievements(game);
+
   // Screenshots banner — Ken Burns cycling like CNGM
   galleryScreenshots = game.Screenshot ? String(game.Screenshot).split('|').filter(s => s.trim()) : [];
   galleryScreenIndex = 0;
@@ -2832,7 +3058,7 @@ function ggpActivateButton() {
       if (game.GrinderGameId && !stL.includes('gog') && !stL.includes('epic')) {
         window.api.openGrinderGui(game.Game);
       } else if (stL.includes('gog') || stL.includes('epic')) { showGrinderConfirm(game); }
-    } else if (game.LaunchCommand) { enterSleepMode(game); }
+    } else if (game.LaunchCommand) { tryLaunch(game); }
   }
 }
 

@@ -415,6 +415,7 @@
           <div class="stat-box"><div class="stat-title" data-i18n="html.stat_genre">GENRE</div><div class="stat-val" id="stat-genre">--</div></div>
           <div class="stat-box"><div class="stat-title" data-i18n="html.stat_hltb">TIME TO BEAT</div><div class="stat-val" id="stat-hltb" style="color: var(--accent);">--</div></div>
           <div class="stat-box"><div class="stat-title" data-i18n="html.stat_proton">PROTONDB</div><div class="stat-val" id="stat-proton">--</div></div>
+          <div id="stat-ach-box" class="stat-box" style="display:none;"><div class="stat-title">ACHIEVEMENTS</div><div class="stat-val" id="stat-ach" style="color: var(--accent);">--</div></div>
           <div class="stat-box"><div class="stat-title" data-i18n="html.stat_series">SERIES</div><div class="stat-val" id="stat-franchise">--</div></div>
           <div class="mini-dock" id="mini-dock">
              <div id="mini-prompt" class="mini-prompt" data-i18n="html.loading_ctrl">Loading Controls...</div>
@@ -545,6 +546,21 @@
             <div id="ggp-stats-panel">
               <div id="ggp-stats-row"></div>
               <div id="ggp-extra"></div>
+              <!-- Achievements stat-box (GOG only) -->
+              <div id="ggp-ach-box" class="stat-box" style="display:none; cursor:pointer; flex-direction:column; align-items:center; gap:8px; padding:14px 10px;" onclick="window.openCremaAchievementsOverlay && window.openCremaAchievementsOverlay()">
+                <div style="position:relative; width:60px; height:60px; flex-shrink:0;">
+                  <svg viewBox="0 0 36 36" width="60" height="60" style="transform:rotate(-90deg);">
+                    <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+                    <circle id="crema-ach-ring" cx="18" cy="18" r="15.9" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="0 100" style="transition:stroke-dasharray 0.6s ease;"/>
+                  </svg>
+                  <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+                    <span id="crema-ach-pct" style="font-size:11px; font-weight:900; color:var(--text_main); line-height:1;">—</span>
+                  </div>
+                </div>
+                <div style="font-size:10px; font-weight:900; letter-spacing:2px; color:var(--text_dim); text-transform:uppercase;">Achievements</div>
+                <div id="crema-ach-count" style="font-size:13px; font-weight:900; color:var(--accent);">—</div>
+                <div style="font-size:10px; color:var(--text_dim);">Press to view all</div>
+              </div>
             </div>
           </div>
         </div>
@@ -606,6 +622,60 @@
     </div>
 
 
+    <!-- Achievements Overlay -->
+    <div id="ach-overlay" class="overlay-backdrop hidden" style="z-index: 150; align-items:flex-start; padding-top:60px;">
+      <div class="overlay-modal" style="width:1000px; max-height:80vh; display:flex; flex-direction:column; gap:0; padding:0; overflow:hidden;">
+        <!-- Header -->
+        <div style="display:flex; align-items:center; gap:24px; padding:28px 32px 22px; border-bottom:2px solid var(--border_solid); flex-shrink:0;">
+          <div style="flex:1; min-width:0;">
+            <div id="crema-ach-game-title" style="font-size:12px; font-weight:900; color:var(--text_dim); text-transform:uppercase; letter-spacing:3px; margin-bottom:4px;"></div>
+            <div style="font-size:22px; font-weight:900; color:var(--accent); text-transform:uppercase; letter-spacing:2px;">Achievements</div>
+          </div>
+          <!-- Large ring -->
+          <div style="position:relative; width:100px; height:100px; flex-shrink:0;">
+            <svg viewBox="0 0 36 36" width="100" height="100" style="transform:rotate(-90deg);">
+              <circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2.5"/>
+              <circle id="crema-ach-ring-big" cx="18" cy="18" r="15.9" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="0 100" style="transition:stroke-dasharray 0.6s ease;"/>
+            </svg>
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;">
+              <span id="crema-ach-ring-pct" style="font-size:18px; font-weight:900; color:var(--text_main); line-height:1;"></span>
+              <span id="crema-ach-ring-count" style="font-size:12px; color:var(--text_dim); line-height:1;"></span>
+            </div>
+          </div>
+        </div>
+        <!-- Filter hint -->
+        <div style="display:flex; gap:0; border-bottom:1px solid var(--border_solid); flex-shrink:0;">
+          <button class="crema-ach-tab active" id="crema-ach-tab-all"     data-f="all"      onclick="cAchSetFilter('all',this)">All</button>
+          <button class="crema-ach-tab"        id="crema-ach-tab-unlocked" data-f="unlocked" onclick="cAchSetFilter('unlocked',this)">Unlocked</button>
+          <button class="crema-ach-tab"        id="crema-ach-tab-locked"   data-f="locked"   onclick="cAchSetFilter('locked',this)">Locked</button>
+        </div>
+        <!-- Grid -->
+        <div id="crema-ach-grid" style="flex:1; overflow-y:auto; padding:18px 24px 24px; display:grid; grid-template-columns:repeat(2,1fr); gap:12px; align-content:start;"></div>
+        <!-- Empty -->
+        <div id="crema-ach-empty" style="display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; padding:60px; color:var(--text_dim); font-size:20px; text-align:center;">
+          <svg viewBox="0 0 24 24" width="60" height="60" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.2;"><path d="M8 21h8M12 17v4M5 7H3v4a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4V7h-2"/><path d="M5 3h14v8a7 7 0 0 1-7 7 7 7 0 0 1-7-7V3z"/></svg>
+          No achievements synced yet.<br><span style="font-size:14px; opacity:0.6;">Open GRINDER → edit this game → Sync Now</span>
+        </div>
+        <!-- Controls hint -->
+        <div style="padding:12px 24px; border-top:1px solid var(--border_solid); display:flex; justify-content:space-between; font-size:13px; color:var(--text_dim); flex-shrink:0;">
+          <span>&#x25B2;&#x25BC; Scroll &nbsp;&nbsp; L1/R1 Filter</span>
+          <span style="color:var(--accent); font-weight:700;" data-i18n-html="html.sgdb_cancel">Press <strong>[B]</strong> to Close</span>
+        </div>
+      </div>
+    </div>
+    <style>
+      .crema-ach-tab { flex:1; padding:12px; background:transparent; border:none; color:var(--text_dim); font-family:Raleway,sans-serif; font-weight:900; font-size:14px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:0.15s; }
+      .crema-ach-tab.active { color:var(--accent); border-bottom:2px solid var(--accent); }
+      .crema-ach-card { display:flex; align-items:center; gap:16px; padding:14px 16px; border-radius:10px; border:1px solid var(--border_solid); background:rgba(255,255,255,0.02); }
+      .crema-ach-card.unlocked { background:rgba(100,175,100,0.08); border-color:rgba(100,175,100,0.3); box-shadow:0 0 18px rgba(100,175,100,0.08); }
+      .crema-ach-card img { width:64px; height:64px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+      .crema-ach-card .c-name { font-size:16px; font-weight:900; color:var(--text_sec); line-height:1.3; }
+      .crema-ach-card.unlocked .c-name { color:#90d890; }
+      .crema-ach-card .c-desc { font-size:13px; color:var(--text_dim); margin-top:3px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+      .crema-ach-card .c-date { font-size:12px; color:rgba(140,210,140,0.6); margin-top:5px; }
+      .crema-ach-card .c-lock { font-size:18px; opacity:0.3; margin-top:4px; }
+    </style>
+
     <div id="sgdb-backdrop" class="overlay-backdrop hidden" style="z-index: 150;">
       <div class="overlay-modal" style="width: 1200px; text-align: center;">
         <div class="overlay-title" data-i18n="html.sgdb_title">SELECT CUSTOM COVER</div>
@@ -660,6 +730,20 @@
       <div style="text-align:center; color:var(--text_dim); font-size:14px; font-weight:900; letter-spacing:1.5px; line-height:2.2;">
         <span style="color:var(--accent)">[ A ]</span> CONFIRM &nbsp;&nbsp;
         <span style="color:var(--text_sec)">[ Y ]</span> CHANGE DIR &nbsp;&nbsp;
+        <span style="color:var(--text_dim)">[ B ]</span> CANCEL
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-launcher version picker -->
+  <div id="launcher-pick-backdrop" class="overlay-backdrop hidden" style="z-index: 300;">
+    <div class="overlay-modal" style="width:560px;">
+      <div class="overlay-title" style="font-size:30px; letter-spacing:3px; margin-bottom:10px;">CHOOSE VERSION</div>
+      <div id="lp-game-title" style="text-align:center; color:var(--accent); font-size:20px; font-weight:900; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px;"></div>
+      <div style="text-align:center; color:var(--text_dim); font-size:11px; font-weight:900; letter-spacing:3px; text-transform:uppercase; margin-bottom:22px; border-bottom:1px solid var(--border); padding-bottom:18px;">Available on multiple stores</div>
+      <div id="lp-list" class="overlay-list" style="overflow-y:hidden; margin-bottom:22px;"></div>
+      <div style="text-align:center; color:var(--text_dim); font-size:13px; font-weight:900; letter-spacing:2px; line-height:2.2;">
+        <span style="color:var(--accent)">[ A ]</span> LAUNCH &nbsp;&nbsp;&nbsp;
         <span style="color:var(--text_dim)">[ B ]</span> CANCEL
       </div>
     </div>

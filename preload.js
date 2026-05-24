@@ -43,6 +43,10 @@ contextBridge.exposeInMainWorld('api', {
                                 updateLastPlayed: (gameName) => ipcRenderer.invoke('update-last-played', gameName),
                                 clearHistory: () => ipcRenderer.invoke('clear-history'),
 
+                                // --- ACHIEVEMENTS ---
+                                getGameAchievements: (appId) => ipcRenderer.invoke('get-game-achievements', appId),
+                                fetchAchievementsNow: (appId) => ipcRenderer.invoke('fetch-achievements-now', appId),
+
                                 // --- I18N ---
                                 getStrings: (lang) => ipcRenderer.invoke('get-strings', lang),
 

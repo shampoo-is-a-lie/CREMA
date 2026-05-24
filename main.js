@@ -413,6 +413,15 @@ ipcMain.handle('delete-trailer', (event, gameName) => {
 
 async function downloadImage(url, dest) { try { const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }); if (!res.ok) return false; const buffer = await res.arrayBuffer(); fs.writeFileSync(dest, Buffer.from(buffer)); return true; } catch(e) { return false; } }
 
+function titleSimilarity(a, b) {
+    const tokens = s => new Set(s.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(Boolean));
+    const ta = tokens(a), tb = tokens(b);
+    if (!ta.size || !tb.size) return 0;
+    let inter = 0;
+    for (const t of ta) if (tb.has(t)) inter++;
+    return inter / (ta.size + tb.size - inter);
+}
+
 async function getIgdbToken() {
     const clientId = db?.prepare("SELECT value FROM settings WHERE key='igdb_client_id'").get()?.value;
     const secret   = db?.prepare("SELECT value FROM settings WHERE key='igdb_client_secret'").get()?.value;
@@ -439,7 +448,7 @@ async function igdbQuery(auth, body) {
 async function igdbSearch(gameName, steamAppId) {
     const auth = await getIgdbToken();
     if (!auth) return null;
-    const fields = 'fields name,summary,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,genres.name,themes.name,first_release_date,aggregated_rating,cover.url,screenshots.url,similar_games.name,franchises.name,collection.name,external_games.category,external_games.uid;';
+    const fields = 'fields name,summary,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,genres.name,themes.name,themes.id,first_release_date,aggregated_rating,cover.url,screenshots.url,similar_games.name,franchises.name,collection.name,external_games.category,external_games.uid;';
     try {
         if (steamAppId) {
             const byId = await igdbQuery(auth, `${fields} where external_games.uid = "${steamAppId}" & external_games.category = 1; limit 1;`);
@@ -489,11 +498,105 @@ ipcMain.handle('search-igdb', async (e, gameName) => {
     } catch(e) { return []; }
 });
 
+// ── GOG Achievements ──────────────────────────────────────────────────────────
+const GOG_CLIENT_ID     = '46899977096215655';
+const GOG_CLIENT_SECRET = '9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9';
+
+ipcMain.handle('fetch-achievements-now', async (_, appId) => {
+    const home = os.homedir();
+    const candidates = [
+        path.join(home, '.config', 'grinder', 'grinder.db'),
+        path.join(home, '.config', 'GRINDER', 'grinder.db'),
+        path.join(baseDir, 'GRINDERConfig', 'grinder.db'),
+    ];
+    const gdbPath = candidates.find(p => fs.existsSync(p));
+    if (!gdbPath) return { ok: false, error: 'grinder_not_found' };
+
+    let token, userId;
+    try {
+        const gdb = new Database(gdbPath, { timeout: 5000 });
+        const get = k => gdb.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value;
+        let access  = get('gog_access_token');
+        const refresh = get('gog_refresh_token');
+        const expiry  = parseInt(get('gog_token_expiry') || '0');
+        userId = get('gog_user_id');
+
+        if (!refresh || !userId) { gdb.close(); return { ok: false, error: 'not_logged_in' }; }
+
+        if (!access || Date.now() >= expiry - 60000) {
+            const res = await fetch('https://auth.gog.com/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    client_id: GOG_CLIENT_ID, client_secret: GOG_CLIENT_SECRET,
+                    grant_type: 'refresh_token', refresh_token: refresh,
+                }).toString(),
+            });
+            const data = await res.json();
+            if (!data.access_token) { gdb.close(); return { ok: false, error: 'token_refresh_failed' }; }
+            access = data.access_token;
+            const set = (k, v) => gdb.prepare("INSERT OR REPLACE INTO settings VALUES (?,?)").run(k, v);
+            set('gog_access_token', access);
+            set('gog_token_expiry', String(Date.now() + data.expires_in * 1000));
+            if (data.refresh_token) set('gog_refresh_token', data.refresh_token);
+        }
+        token = access;
+        gdb.close();
+    } catch (e) { return { ok: false, error: e.message }; }
+
+    try {
+        const res = await fetch(
+            `https://gameplay.gog.com/clients/${appId}/users/${userId}/achievements`,
+            { headers: { 'Authorization': `Bearer ${token}`, 'User-Agent': 'CREMA/1.0' } }
+        );
+        if (!res.ok) return { ok: false, error: `GOG API ${res.status}` };
+        const data = await res.json();
+        const items = data.items || [];
+
+        db.exec(`CREATE TABLE IF NOT EXISTS achievements (
+            app_id TEXT NOT NULL, key TEXT NOT NULL, name TEXT,
+            description TEXT, image_locked TEXT, image_unlocked TEXT,
+            date_unlocked TEXT, visible INTEGER DEFAULT 1,
+            PRIMARY KEY (app_id, key)
+        )`);
+        const upsert = db.prepare(`INSERT OR REPLACE INTO achievements
+            (app_id, key, name, description, image_locked, image_unlocked, date_unlocked, visible)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+        db.transaction(list => {
+            for (const a of list) upsert.run(
+                appId, a.achievement_key, a.name, a.description,
+                a.image_url_locked, a.image_url_unlocked, a.date_unlocked || null,
+                a.visible === false ? 0 : 1
+            );
+        })(items);
+
+        const rows = db.prepare(
+            "SELECT * FROM achievements WHERE app_id = ? ORDER BY date_unlocked DESC, name COLLATE NOCASE"
+        ).all(appId);
+        return { ok: true, achievements: rows };
+    } catch (e) { return { ok: false, error: e.message }; }
+});
+
+ipcMain.handle('get-game-achievements', (_, appId) => {
+    try {
+        db.exec(`CREATE TABLE IF NOT EXISTS achievements (
+            app_id TEXT NOT NULL, key TEXT NOT NULL, name TEXT,
+            description TEXT, image_locked TEXT, image_unlocked TEXT,
+            date_unlocked TEXT, visible INTEGER DEFAULT 1,
+            PRIMARY KEY (app_id, key)
+        )`);
+        const rows = db.prepare(
+            "SELECT * FROM achievements WHERE app_id = ? ORDER BY date_unlocked DESC, name COLLATE NOCASE"
+        ).all(appId);
+        return { ok: true, achievements: rows };
+    } catch (e) { return { ok: false, achievements: [] }; }
+});
+
 ipcMain.handle('scrape-igdb-data', async (e, gameName, mode, igdbId) => {
     try {
         const auth = await getIgdbToken();
         if (!auth) return false;
-        const fields = 'fields name,summary,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,genres.name,themes.name,first_release_date,aggregated_rating,cover.url,screenshots.url,similar_games.name,franchises.name,collection.name,external_games.category,external_games.uid;';
+        const fields = 'fields name,summary,involved_companies.developer,involved_companies.publisher,involved_companies.company.name,genres.name,themes.name,themes.id,first_release_date,aggregated_rating,cover.url,screenshots.url,similar_games.name,franchises.name,collection.name,external_games.category,external_games.uid;';
         const res = await fetch('https://api.igdb.com/v4/games', {
             method: 'POST',
             headers: { 'Client-ID': auth.clientId, 'Authorization': `Bearer ${auth.token}`, 'Content-Type': 'text/plain' },
@@ -505,13 +608,14 @@ ipcMain.handle('scrape-igdb-data', async (e, gameName, mode, igdbId) => {
         const beautifulName = getBeautifulName(gameName);
         const steamExt = igdb.external_games?.find(ex => ex.category === 1);
         const steamAppId = steamExt?.uid ? String(steamExt.uid).replace(/\.0+$/, '') : null;
+        const isAdultContent = igdb.themes?.some(t => t.id === 42);
         let overallSuccess = false;
 
         if (mode === 'COVER' || mode === 'ALL') {
-            // Cover — Steam CDN preferred, IGDB fallback
+            // Cover — Steam CDN preferred, IGDB fallback (skip IGDB if adult content)
             const coverFile = `${beautifulName} - Cover.jpg`;
             let coverOk = steamAppId ? await downloadImage(`https://steamcdn-a.akamaihd.net/steam/apps/${steamAppId}/library_600x900.jpg`, path.join(imagesDir, coverFile)) : false;
-            if (!coverOk && igdb.cover?.url) coverOk = await downloadImage(igdbImg(igdb.cover.url, 'cover_big'), path.join(imagesDir, coverFile));
+            if (!coverOk && igdb.cover?.url && !isAdultContent) coverOk = await downloadImage(igdbImg(igdb.cover.url, 'cover_big'), path.join(imagesDir, coverFile));
             if (coverOk) { db.prepare("UPDATE games SET CoverArt=? WHERE Game=?").run(`GameManagerConfig/images/${coverFile}`, gameName); overallSuccess = true; }
 
             // Hero Art — Steam CDN only
@@ -534,7 +638,7 @@ ipcMain.handle('scrape-igdb-data', async (e, gameName, mode, igdbId) => {
 
         if (mode === 'SCREENSHOTS' || mode === 'ALL') {
             const saved = [];
-            if (igdb.screenshots?.length) {
+            if (igdb.screenshots?.length && !isAdultContent) {
                 for (let i = 0; i < Math.min(5, igdb.screenshots.length); i++) {
                     const fn = `${beautifulName} - Screen ${i+1}.jpg`;
                     if (await downloadImage(igdbImg(igdb.screenshots[i].url, 'screenshot_big'), path.join(imagesDir, fn)))
