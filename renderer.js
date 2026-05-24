@@ -201,7 +201,7 @@ function convertSafePath(rawPath) {
 let usingKeyboard = false;
 function getBtn(icon) { const iconPath = convertSafePath('assets/gamepad_icons/' + icon + '.png'); return `<span class="gp-btn-masked" style="-webkit-mask-image: url('${iconPath}');"></span>`; }
 function getKey(label) { return `<span class="kb-key">${label}</span>`; }
-function logoPath(name) { const safe = name.toLowerCase().replace(/ /g, '_'); const file = safe === 'flatpak' ? 'faltpak' : safe === 'pico-8' ? 'pico8' : safe; return convertSafePath(`assets/logos/${file}.png`); }
+function logoPath(name) { const safe = name.toLowerCase().replace(/ /g, '_'); const file = safe === 'pico-8' ? 'pico8' : safe; return convertSafePath(`assets/logos/${file}.png`); }
 
 // ── FLATPAK SCAN + ART GENERATION ────────────────────────────────────────
 
@@ -2373,7 +2373,7 @@ function getGalleryStoreLogo(store) {
   if (s.includes('steam'))    return 'assets/logos/steam.png';
   if (s.includes('gog'))      return 'assets/logos/gog.png';
   if (s.includes('epic'))     return 'assets/logos/epic.png';
-  if (s.includes('flatpak'))  return 'assets/logos/faltpak.png';
+  if (s.includes('flatpak'))  return 'assets/logos/flatpak.png';
   if (s.includes('itch'))    return 'assets/logos/itch.png';
   if (s.includes('pico'))    return 'assets/logos/pico8.png';
   if (s.includes('physical')) return 'assets/logos/physical.png';
