@@ -82,6 +82,22 @@ Place both AppImages in the same folder and CREMA is available instantly from CN
 
 **After launching a game**, wake CREMA with **Start + Select** on your controller (or hold `,` + `.` on keyboard). Change the wake combo in System Menu → Controls → Wake Method.
 
+## The Cafe Neurotico Ecosystem
+
+```
+  CNGM           Central hub — PC game library, store sync, launches all companion apps
+    │
+    ├──▸  CREMA  ◈    Fullscreen / gamepad counterpart for CNGM + EmuLatte
+    │
+    ├──▸  GRINDER     GOG & Epic install engine — feeds games back into CNGM
+    │
+    ├──▸  EmuLatte    ROM library manager — emulation counterpart to CNGM
+    │
+    └──▸  CN Clock    Floating desktop clock — shows art from CNGM + EmuLatte
+```
+
+Place all AppImages in the same folder. CNGM launches CREMA from its sidebar — no configuration needed.
+
 ## License
 
 Copyright (C) 2026 J.R.A. (Shampoo is a Lie)
